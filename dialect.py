@@ -6,14 +6,101 @@ from sqlalchemy.sql import crud, selectable, util, elements, compiler, functions
 import pprint
 from sqlalchemy import util as sa_util
 from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, ILLEGAL_INITIAL_CHARACTERS, BIND_PARAMS, BIND_PARAMS_ESC, OPERATORS, BIND_TEMPLATES, FUNCTIONS, EXTRACT_MAP, COMPOUND_KEYWORDS
-
-from sqlalchemy.dialects.postgresql.base import PGExecutionContext
+from sqlalchemy.engine import reflection
+from sqlalchemy.dialects.postgresql.base import PGExecutionContext, PGDDLCompiler
 
 from psycopg2.extensions import cursor as pg2_cursor
-import urllib
+import urllib2
 import json
+from sqlalchemy import Table, MetaData
+
 
 pp = pprint.PrettyPrinter(indent=2)        
+
+urlheaders = {
+        'Content-type': 'application/x-www-form-urlencoded',
+        'Accept': 'text/javascript, text/html, application/xml, text/xml, application/json */*',
+        'Accept-Encoding': 'gzip,deflate,sdch',
+        'Accept-Charset': 'utf-8',
+        'Authorization': '7563e04a-8206-4894-9658-da6fe70795ca'
+    }
+
+def post(suffix, query):
+    query['db'] = 'test'
+    query = urllib2.quote(json.dumps(query))
+    print "quoted query: " + query
+    ans = requests.post('http://localhost:5000/api/action/dataconnection_%s' % suffix, data = query, headers=urlheaders)
+    return ans.json()
+
+class OEDDLCompiler(PGDDLCompiler):
+    def visit_create_table(self, create):
+        jsn = {'type':'create', 'table': create.element.name}
+        if create.element.schema:
+            jsn['schema'] = create.element.schema
+        
+
+        # if only one primary key, specify it along with the column
+        first_pk = False
+        cols = []
+        for create_column in create.columns:
+            column = create_column.element
+            try:
+                processed = self.process(create_column,
+                                         first_pk=column.primary_key
+                                         and not first_pk)
+                if processed is not None:
+                    cols.append(processed)
+                if column.primary_key:
+                    first_pk = True
+            except exc.CompileError as ce:
+                util.raise_from_cause(
+                    exc.CompileError(
+                        util.u("(in table '%s', column '%s'): %s") %
+                        (table.description, column.name, ce.args[0])
+                    ))
+        jsn['fields'] = cols
+        
+        return jsn
+        
+
+    def visit_create_column(self, create, first_pk=False):
+        column = create.element
+        
+        if column.system:
+            return None
+            
+        jsn = self.get_column_specification(
+            column,
+            first_pk=first_pk
+        )
+        const = [self.process(constraint)
+            for constraint in column.constraints]
+        if const:
+            jsn["constraints"] = const
+
+        return jsn
+
+    def get_column_specification(self, column, **kwargs):
+        jsn = {}
+        jsn['name'] = self.preparer.format_column(column)
+        jsn['type'] = self.dialect.type_compiler.process(column.type, 
+            type_expression=column)
+        print jsn['type']
+        
+        default = self.get_column_default_string(column)
+        if default is not None:
+            jsn['default'] = default
+
+        if not column.nullable:
+            jsn['nullable'] = 'False'
+             
+        return jsn
+
+    def visit_drop_table(self, drop):
+        jsn = {'type':'drop', 'table': self.preparer.format_table(drop.element)}
+        if drop.element.schema:
+            jsn['schema'] = drop.element.schema
+        return jsn
         
 class Cursor(pg2_cursor):
     description = None
@@ -26,34 +113,56 @@ class Cursor(pg2_cursor):
         elif type(jsn) == list:
             return map(lambda x: self.__replace_params(x,params), jsn)
         elif type(jsn) in [str, unicode, sqlalchemy.sql.elements.quoted_name]:
-            return (jsn%params).strip("'<>() ").replace('\'', '\"')    
+            return (jsn%params).strip("'<>").replace('\'', '\"')    
         print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn) 
         exit()
                 
-    urlheaders = {
-        'Content-type': 'application/x-www-form-urlencoded',
-        'Accept': 'text/javascript, text/html, application/xml, text/xml, application/json */*',
-        'Accept-Encoding': 'gzip,deflate,sdch',
-        'Accept-Charset': 'utf-8',
-    }
+    
     
     def execute(self, context, params):
-        #pp.pprint(("EXECUTE: ", (context.compiled.string), params))
-        print context.compiled.string
         query = self.__replace_params(context.compiled.string,params)
-        query["db"] = "test"
-        query["schema"] = "test"
-        t = query.pop('type')
-        query = urllib.quote(json.dumps(query))
+        #query = context.compiled.string
         print query
-        r = requests.post('http://localhost:5000/api/action/dataconnection_%s' % t, data = query, headers=Cursor.urlheaders)
-        pp.pprint(r.status_code)
-        pp.pprint(r.encoding)
-        pp.pprint(r.text)
-        pp.pprint(r.json)
+        t = query.pop('type')
+        r = post(t, query)
+        pp.pprint(r)
         
 class OEExecutionContext_psycopg2(PGExecutionContext):
 
+
+    @classmethod
+    def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl):
+        """Initialize execution context for a DDLElement construct."""
+
+        self = cls.__new__(cls)
+        self.root_connection = connection
+        self._dbapi_connection = dbapi_connection
+        self.dialect = connection.dialect
+
+        self.compiled = compiled = compiled_ddl
+        self.isddl = True
+
+        self.execution_options = compiled.statement._execution_options
+        if connection._execution_options:
+            self.execution_options = dict(self.execution_options)
+            self.execution_options.update(connection._execution_options)
+
+        if not dialect.supports_unicode_statements:
+            self.unicode_statement = "" # util.text_type(compiled)
+            self.statement = "" # dialect._encoder(self.unicode_statement)[0]
+        else:
+            self.statement = "" # self.unicode_statement = util.text_type(compiled)
+
+        self.cursor = self.create_cursor()
+        self.compiled_parameters = []
+
+        if dialect.positional:
+            self.parameters = [dialect.execute_sequence_format()]
+        else:
+            self.parameters = [{}]
+
+        return self
+        
     @classmethod
     def _init_compiled(cls, dialect, connection, dbapi_connection,
                        compiled, parameters):
@@ -196,7 +305,150 @@ class OEExecutionContext_psycopg2(PGExecutionContext):
         
         
 class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
-       
+   
+    def visit_insert(self, insert_stmt, **kw):
+        self.stack.append(
+            {'correlate_froms': set(),
+             "asfrom_froms": set(),
+             "selectable": insert_stmt})
+
+        self.isinsert = True
+        crud_params = crud._get_crud_params(self, insert_stmt, **kw)
+
+        if not crud_params and \
+                not self.dialect.supports_default_values and \
+                not self.dialect.supports_empty_insert:
+            raise exc.CompileError("The '%s' dialect with current database "
+                                   "version settings does not support empty "
+                                   "inserts." %
+                                   self.dialect.name)
+
+        if insert_stmt._has_multi_parameters:
+            if not self.dialect.supports_multivalues_insert:
+                raise exc.CompileError(
+                    "The '%s' dialect with current database "
+                    "version settings does not support "
+                    "in-place multirow inserts." %
+                    self.dialect.name)
+            crud_params_single = crud_params[0]
+        else:
+            crud_params_single = crud_params
+
+        preparer = self.preparer
+        supports_default_values = self.dialect.supports_default_values
+
+        jsn = {"type":"insert"}
+
+        if insert_stmt._prefixes:
+            text += self._generate_prefixes(insert_stmt,
+                                            insert_stmt._prefixes, **kw)
+
+        #table_text = preparer.format_table(insert_stmt.table)
+        table_text = insert_stmt.table._compiler_dispatch(
+            self, asfrom=True, iscrud=True)
+        print table_text
+        if insert_stmt._hints:
+            dialect_hints = dict([
+                (table, hint_text)
+                for (table, dialect), hint_text in
+                insert_stmt._hints.items()
+                if dialect in ('*', self.dialect.name)
+            ])
+            if insert_stmt.table in dialect_hints:
+                table_text = self.format_from_hint_text(
+                    table_text,
+                    insert_stmt.table,
+                    dialect_hints[insert_stmt.table],
+                    True
+                )
+
+        jsn['table'] = table_text['table']
+        
+        jsn['schema'] = table_text['schema']
+
+        if crud_params_single or not supports_default_values:
+            jsn["fields"] = [preparer.format_column(c[0])
+                                         for c in crud_params_single]
+
+        if self.returning or insert_stmt._returning:
+            self.returning = self.returning or insert_stmt._returning
+            returning_clause = self.returning_clause(
+                insert_stmt, self.returning)
+
+            if self.returning_precedes_values:
+                jsn["returning_insert"] = returning_clause
+
+        if insert_stmt.select is not None:
+            jsn['values'] = " %s" % self.process(self._insert_from_select, **kw)
+        elif not crud_params and supports_default_values:
+            jsn['values'] = " DEFAULT VALUES"
+        elif insert_stmt._has_multi_parameters:
+            jsn['values'] = [[c[1] for c in crud_param_set]                   
+                    for crud_param_set in crud_params]            
+        else:
+            jsn['values'] = [[c[1] for c in crud_params]]
+
+        if self.returning and not self.returning_precedes_values:
+            jsn["returning"] = returning_clause
+
+        return jsn
+    
+    
+    def visit_delete(self, delete_stmt, **kw):
+        self.stack.append({'correlate_froms': set([delete_stmt.table]),
+                           "asfrom_froms": set([delete_stmt.table]),
+                           "selectable": delete_stmt})
+        self.isdelete = True
+
+        jsn = {'type': "delete"}
+
+        if delete_stmt._prefixes:
+            text += self._generate_prefixes(delete_stmt,
+                                            delete_stmt._prefixes, **kw)
+        
+        table_text = delete_stmt.table._compiler_dispatch(
+            self, asfrom=True, iscrud=True)
+
+        if delete_stmt._hints:
+            dialect_hints = dict([
+                (table, hint_text)
+                for (table, dialect), hint_text in
+                delete_stmt._hints.items()
+                if dialect in ('*', self.dialect.name)
+            ])
+            if delete_stmt.table in dialect_hints:
+                table_text = self.format_from_hint_text(
+                    table_text,
+                    delete_stmt.table,
+                    dialect_hints[delete_stmt.table],
+                    True
+                )
+
+        else:
+            dialect_hints = None
+            
+        jsn['table'] = table_text['table']
+        
+        jsn['schema'] = table_text['schema']
+
+        if delete_stmt._returning:
+            self.returning = delete_stmt._returning
+            if self.returning_precedes_values:
+                jsn['returning_delete'] = " " + self.returning_clause(
+                    delete_stmt, delete_stmt._returning)
+
+        if delete_stmt._whereclause is not None:
+            t = delete_stmt._whereclause._compiler_dispatch(self)
+            if t:
+                jsn['where'] = " WHERE " + t
+
+        if self.returning and not self.returning_precedes_values:
+            jsn['returning'] = self.returning_clause(
+                delete_stmt, delete_stmt._returning)
+
+        self.stack.pop(-1)
+
+        return jsn
        
     def visit_table(self, table, asfrom=False, iscrud=False, ashint=False,
                     fromhints=None, **kwargs):
@@ -417,7 +669,6 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
     def visit_column(self, column, add_to_result_map=None,
                      include_table=True, **kwargs):
         name = orig_name = column.name
-        print "COLUMN"
         if name is None:
             raise exc.CompileError("Cannot compile Column object until "
                                    "its 'name' is assigned.")
@@ -620,6 +871,7 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
         return froms    
     
 class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
+    ddl_compiler = OEDDLCompiler
     execution_ctx_cls = OEExecutionContext_psycopg2
     statement_compiler = PGCompiler_OE
     
@@ -640,123 +892,119 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         
     def _get_default_schema_name(self, connection):
         #TODO: return connection.scalar("select current_schema()")
-        return 'default'
+        return None
         
     def has_schema(self, connection, schema):
-        #TODO:
-        """query = ("select nspname from pg_namespace "
-                 "where lower(nspname)=:schema")
-        cursor = connection.execute(
-            sql.text(
-                query,
-                bindparams=[
-                    sql.bindparam(
-                        'schema', util.text_type(schema.lower()),
-                        type_=sqltypes.Unicode)]
-            )
-        )
-
-        return bool(cursor.first())"""
-        return True
+        ans = post('has_schema', {'schema':schema})
         
     def has_table(self, connection, table_name, schema=None):
-        # TODO: 
-        """
-        # seems like case gets folded in pg_class...
-        if schema is None:
-            cursor = connection.execute(
-                sql.text(
-                    "select relname from pg_class c join pg_namespace n on "
-                    "n.oid=c.relnamespace where "
-                    "pg_catalog.pg_table_is_visible(c.oid) "
-                    "and relname=:name",
-                    bindparams=[
-                        sql.bindparam('name', util.text_type(table_name),
-                                      type_=sqltypes.Unicode)]
-                )
-            )
-        else:
-            cursor = connection.execute(
-                sql.text(
-                    "select relname from pg_class c join pg_namespace n on "
-                    "n.oid=c.relnamespace where n.nspname=:schema and "
-                    "relname=:name",
-                    bindparams=[
-                        sql.bindparam('name',
-                                      util.text_type(table_name),
-                                      type_=sqltypes.Unicode),
-                        sql.bindparam('schema',
-                                      util.text_type(schema),
-                                      type_=sqltypes.Unicode)]
-                )
-            )
-        return bool(cursor.first())"""
-        return True
+        print "has table: %s" % table_name
+        query = {'table_name':table_name}
+        if schema:
+            query['schema'] = schema
+        ans = post('has_table', query)
+        print ans['result']
+        return ans['result']
         
     def has_sequence(self, connection, sequence_name, schema=None):
-        """if schema is None:
-            cursor = connection.execute(
-                sql.text(
-                    "SELECT relname FROM pg_class c join pg_namespace n on "
-                    "n.oid=c.relnamespace where relkind='S' and "
-                    "n.nspname=current_schema() "
-                    "and relname=:name",
-                    bindparams=[
-                        sql.bindparam('name', util.text_type(sequence_name),
-                                      type_=sqltypes.Unicode)
-                    ]
-                )
-            )
-        else:
-            cursor = connection.execute(
-                sql.text(
-                    "SELECT relname FROM pg_class c join pg_namespace n on "
-                    "n.oid=c.relnamespace where relkind='S' and "
-                    "n.nspname=:schema and relname=:name",
-                    bindparams=[
-                        sql.bindparam('name', util.text_type(sequence_name),
-                                      type_=sqltypes.Unicode),
-                        sql.bindparam('schema',
-                                      util.text_type(schema),
-                                      type_=sqltypes.Unicode)
-                    ]
-                )
-            )
+        query = {'sequence_name': sequence_name}
+        if schema:
+            query['schema'] = schema
+        ans = post('has_sequence', query)
 
-        return bool(cursor.first())"""
-        return True
-        
     def has_type(self, connection, type_name, schema=None):
-        """if schema is not None:
-            query = "" "
-            SELECT EXISTS (
-                SELECT * FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n
-                WHERE t.typnamespace = n.oid
-                AND t.typname = :typname
-                AND n.nspname = :nspname
-                )
-                "" "
-            query = sql.text(query)
-        else:
-            query = "" "
-            SELECT EXISTS (
-                SELECT * FROM pg_catalog.pg_type t
-                WHERE t.typname = :typname
-                AND pg_type_is_visible(t.oid)
-                )
-                "" "
-            query = sql.text(query)
-        query = query.bindparams(
-            sql.bindparam('typname',
-                          util.text_type(type_name), type_=sqltypes.Unicode),
-        )
-        if schema is not None:
-            query = query.bindparams(
-                sql.bindparam('nspname',
-                              util.text_type(schema), type_=sqltypes.Unicode),
-            )
-        cursor = connection.execute(query)
-        return bool(cursor.scalar())"""
-        return True
+        query = {'type_name': type_name}
+        if schema:
+            query['schema'] = schema
+        ans = post('has_type', query)
+
+    @reflection.cache
+    def get_table_oid(self, connection, table_name, schema=None, **kw):
+        query = {'table_name': table_name}
+        if schema:
+            query['schema'] = schema
+        query.update(kw)    
+        ans = post('get_table_oid', query)
+
+    @reflection.cache
+    def get_schema_names(self, connection, **kw):
+        ans = post('get_schema_names', kw)
+
+    @reflection.cache
+    def get_table_names(self, connection, schema=None, **kw):
+        query = {}
+        if schema:
+            query['schema'] = schema
+        query.update(kw)    
+        ans = post('get_table_names', query)
+
+
+    @reflection.cache
+    def get_view_names(self, connection, schema=None, **kw):
+        query = {}
+        if schema:
+            query['schema'] = schema
+        query.update(kw)    
+        ans = post('get_view_names', query)
+
+
+    @reflection.cache
+    def get_view_definition(self, connection, view_name, schema=None, **kw):
+        query = {'view_name': view_name}
+        if schema:
+            query['schema'] = schema
+        query.update(kw)    
+        ans = post('get_view_definition', query)
+
+    @reflection.cache
+    def get_columns(self, connection, table_name, schema=None, **kw):
+        query = {'table_name': table_name}
+        if schema:
+            query['schema'] = schema
+        query.update(kw)    
+        ans = post('get_columns', query)
+
+
+
+    @reflection.cache
+    def get_pk_constraint(self, connection, table_name, schema=None, **kw):
+        query = {'table_name': table_name}
+        if schema:
+            query['schema'] = schema
+        query.update(kw)    
+        ans = post('get_pk_constraint', query)
+
+
+    @reflection.cache
+    def get_foreign_keys(self, connection, table_name, schema=None,
+                         postgresql_ignore_search_path=False, **kw):
+        query = {'table_name': table_name}
+        if schema:
+            query['schema'] = schema
+        if postgresql_ignore_search_path:
+            query['postgresql_ignore_search_path'] = \
+                postgresql_ignore_search_path
+        query.update(kw)    
+        ans = post('get_foreign_keys', query)
+        
+
+
+    @reflection.cache
+    def get_indexes(self, connection, table_name, schema, **kw):
+        query = {'table_name': table_name, 'schema': schema}
+        query.update(kw)    
+        ans = post('get_indexes', query)
+        
+
+    @reflection.cache
+    def get_unique_constraints(self, connection, table_name,
+                               schema=None, **kw):
+        query = {'table_name': table_name}
+        if schema:
+            query['schema'] = schema
+        query.update(kw)    
+        ans = post('get_unique_constraints', query)
+        
+        
 from sqlalchemy.dialects import registry
 registry.register("postgresql.oedialect", "dialect", "OEDialect")
