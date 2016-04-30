@@ -7,15 +7,19 @@ import pprint
 from sqlalchemy import util as sa_util
 from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, ILLEGAL_INITIAL_CHARACTERS, BIND_PARAMS, BIND_PARAMS_ESC, OPERATORS, BIND_TEMPLATES, FUNCTIONS, EXTRACT_MAP, COMPOUND_KEYWORDS
 from sqlalchemy.engine import reflection
+from sqlalchemy.engine import result as _result
 from sqlalchemy.dialects.postgresql.base import PGExecutionContext, PGDDLCompiler
 
 from psycopg2.extensions import cursor as pg2_cursor
 import urllib2
 import json
 from sqlalchemy import Table, MetaData
+import logging
 
 
 pp = pprint.PrettyPrinter(indent=2)        
+
+logger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
 urlheaders = {
         'Content-type': 'application/x-www-form-urlencoded',
@@ -28,7 +32,6 @@ urlheaders = {
 def post(suffix, query):
     query['db'] = 'test'
     query = urllib2.quote(json.dumps(query))
-    print "quoted query: " + query
     ans = requests.post('http://localhost:5000/api/action/dataconnection_%s' % suffix, data = query, headers=urlheaders)
     return ans.json()
 
@@ -85,7 +88,6 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn['name'] = self.preparer.format_column(column)
         jsn['type'] = self.dialect.type_compiler.process(column.type, 
             type_expression=column)
-        print jsn['type']
         
         default = self.get_column_default_string(column)
         if default is not None:
@@ -97,12 +99,12 @@ class OEDDLCompiler(PGDDLCompiler):
         return jsn
 
     def visit_drop_table(self, drop):
-        jsn = {'type':'drop', 'table': self.preparer.format_table(drop.element)}
+        jsn = {'type':'drop', 'table': drop.element.name}
         if drop.element.schema:
             jsn['schema'] = drop.element.schema
         return jsn
         
-class Cursor(pg2_cursor):
+class OECursor(pg2_cursor):
     description = None
     
     def __replace_params(self, jsn, params):
@@ -114,21 +116,32 @@ class Cursor(pg2_cursor):
             return map(lambda x: self.__replace_params(x,params), jsn)
         elif type(jsn) in [str, unicode, sqlalchemy.sql.elements.quoted_name]:
             return (jsn%params).strip("'<>").replace('\'', '\"')    
-        print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn) 
+        #print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn) 
         exit()
                 
-    
+    def fetchone(self):
+        return self.fetchmany(1)
+        
+    def fetchmany(self, size):
+        resu = self.data[:size]
+        self.data = self.data[size:]
+        return resu
+        
     
     def execute(self, context, params):
         query = self.__replace_params(context.compiled.string,params)
         #query = context.compiled.string
-        print query
+        #print query
         t = query.pop('type')
         r = post(t, query)
-        pp.pprint(r)
+        result = r['result']
+        self.success = r['success']
+        print result
+        if 'description' in result:
+            self.description = result['description']
+            self.data = result['data']
         
 class OEExecutionContext_psycopg2(PGExecutionContext):
-
 
     @classmethod
     def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl):
@@ -154,6 +167,7 @@ class OEExecutionContext_psycopg2(PGExecutionContext):
             self.statement = "" # self.unicode_statement = util.text_type(compiled)
 
         self.cursor = self.create_cursor()
+        
         self.compiled_parameters = []
 
         if dialect.positional:
@@ -265,12 +279,23 @@ class OEExecutionContext_psycopg2(PGExecutionContext):
         self.parameters = dialect.execute_sequence_format(parameters)
 
         return self
+        
+    def get_result_proxy(self):
+        # TODO: ouch
+        if logger.isEnabledFor(logging.INFO):
+            self._log_notices(self.cursor)
 
+        if self.__is_server_side:
+            return _result.BufferedRowResultProxy(self)
+        else:
+            return _result.ResultProxy(self)
 
     def create_cursor(self):
         # TODO: coverage for server side cursors + select.for_update()
-        return Cursor(self)
-        
+        cursor = OECursor(self)
+        self.__is_server_side = False
+        return cursor
+        """
         if self.dialect.server_side_cursors:
             is_server_side = \
                 self.execution_options.get('stream_results', True) and (
@@ -300,12 +325,25 @@ class OEExecutionContext_psycopg2(PGExecutionContext):
             return self._dbapi_connection.cursor(ident)
         else:
             return self._dbapi_connection.cursor()        
-        
+        """
         
         
         
 class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
    
+    def visit_clauselist(self, clauselist, **kw):
+        sep = clauselist.operator
+        if sep is None:
+            sep = " "
+        else:
+            sep = OPERATORS[clauselist.operator]
+        return [
+            s for s in
+            (
+                c._compiler_dispatch(self, **kw)
+                for c in clauselist.clauses)
+            if s]
+            
     def visit_insert(self, insert_stmt, **kw):
         self.stack.append(
             {'correlate_froms': set(),
@@ -346,7 +384,7 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
         #table_text = preparer.format_table(insert_stmt.table)
         table_text = insert_stmt.table._compiler_dispatch(
             self, asfrom=True, iscrud=True)
-        print table_text
+        #print table_text
         if insert_stmt._hints:
             dialect_hints = dict([
                 (table, hint_text)
@@ -466,7 +504,8 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
             
             return jsn
         else:
-            return {}
+            raise NotImplementedError("visit_table (%s)"%table.name)
+            #return {}
     
     def visit_select(self, select, asfrom=False, parens=True,
                      fromhints=None,
@@ -510,7 +549,7 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
             if populate_result_map:
                 self._transform_result_map_for_nested_joins(
                     select, transformed_select)
-            return text
+            return jsn
 
         froms = self._setup_select_stack(select, entry, asfrom)
 
@@ -586,7 +625,7 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
                 select, select._suffixes, **kwargs)
 
         self.stack.pop(-1)
-        print "select: %s" % jsn
+        #print "select: %s" % jsn
         
         if asfrom and parens:
             return jsn #"(" + text + ")"
@@ -695,7 +734,7 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
             return jsn
         else:
             if table.schema:
-                jsn['schema'] = self.preparer.quote_schema(table.schema) + '.'
+                jsn['schema'] = self.preparer.quote_schema(table.schema)
                 
             tablename = table.name
             if isinstance(tablename, elements._truncated_label):
@@ -878,6 +917,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     
     def do_execute(self, cursor, statement, parameters, context=None):
+        
         cursor.execute(context, parameters) 
         
     def _check_unicode_description(self, connection):
@@ -898,12 +938,12 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         ans = post('has_schema', {'schema':schema})
         
     def has_table(self, connection, table_name, schema=None):
-        print "has table: %s" % table_name
+        #print "has table: %s" % table_name
         query = {'table_name':table_name}
         if schema:
             query['schema'] = schema
         ans = post('has_table', query)
-        print ans['result']
+        #print ans['result']
         return ans['result']
         
     def has_sequence(self, connection, sequence_name, schema=None):
