@@ -138,7 +138,7 @@ class OECursor(pg2_cursor):
         self.success = r['success']
         print result
         if 'description' in result:
-            self.description = result['description']
+            #self.description = result['description']
             self.data = result['data']
         
 class OEExecutionContext_psycopg2(PGExecutionContext):
