@@ -42,6 +42,8 @@ def post(suffix, query):
     #    raise Exception(ans._content)
         
 class OEDDLCompiler(PGDDLCompiler):
+    
+        
     def visit_create_table(self, create):
         jsn = {'type':'create', 'table': create.element.name}
         if create.element.schema:
@@ -921,7 +923,15 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     execution_ctx_cls = OEExecutionContext_psycopg2
     statement_compiler = PGCompiler_OE
     
-
+    def __init__(self, *args, **kwargs):
+        self._engine = None
+        super(OEDialect, self).__init__(*args, **kwargs)
+    
+    def connect(self, *cargs, **cparams):
+        if self._engine:
+            return self._engine.connect()
+        else:
+            return self.dbapi.connect(*cargs, **cparams)
     
     def do_execute(self, cursor, statement, parameters, context=None):
         
