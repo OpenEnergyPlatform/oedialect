@@ -11,11 +11,11 @@ from sqlalchemy.engine import result as _result
 from sqlalchemy.dialects.postgresql.base import PGExecutionContext, PGDDLCompiler
 
 from psycopg2.extensions import cursor as pg2_cursor
-import urllib2
+import urllib
 import json
 from sqlalchemy import Table, MetaData
 import logging
-
+import login
 
 pp = pprint.PrettyPrinter(indent=2)        
 
@@ -26,15 +26,21 @@ urlheaders = {
         'Accept': 'text/javascript, text/html, application/xml, text/xml, application/json */*',
         'Accept-Encoding': 'gzip,deflate,sdch',
         'Accept-Charset': 'utf-8',
-        'Authorization': '7563e04a-8206-4894-9658-da6fe70795ca'
+        'Authorization': login.secret_key
     }
 
 def post(suffix, query):
     query['db'] = 'test'
-    query = urllib2.quote(json.dumps(query))
-    ans = requests.post('http://localhost:5000/api/action/dataconnection_%s' % suffix, data = query, headers=urlheaders)
-    return ans.json()
-
+    print(query)
+    query = urllib.quote(json.dumps(query))
+    #ans = requests.post('http://localhost:9000/data/api/action/dataconnection_%s' % suffix, data = query, headers=urlheaders)
+    ans = requests.post('http://193.175.187.164/data/api/action/dataconnection_%s' % suffix, data = query, headers=urlheaders)
+    print(ans)
+    #if ans.status_code == 400:
+    return ans.json() 
+    #else:
+    #    raise Exception(ans._content)
+        
 class OEDDLCompiler(PGDDLCompiler):
     def visit_create_table(self, create):
         jsn = {'type':'create', 'table': create.element.name}
@@ -134,9 +140,10 @@ class OECursor(pg2_cursor):
         #print query
         t = query.pop('type')
         r = post(t, query)
+        
         result = r['result']
         self.success = r['success']
-        print result
+        
         if 'description' in result:
             #self.description = result['description']
             self.data = result['data']
@@ -384,7 +391,7 @@ class PGCompiler_OE(postgresql.psycopg2.PGCompiler):
         #table_text = preparer.format_table(insert_stmt.table)
         table_text = insert_stmt.table._compiler_dispatch(
             self, asfrom=True, iscrud=True)
-        #print table_text
+        
         if insert_stmt._hints:
             dialect_hints = dict([
                 (table, hint_text)
@@ -938,12 +945,11 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         ans = post('has_schema', {'schema':schema})
         
     def has_table(self, connection, table_name, schema=None):
-        #print "has table: %s" % table_name
         query = {'table_name':table_name}
         if schema:
             query['schema'] = schema
         ans = post('has_table', query)
-        #print ans['result']
+
         return ans['result']
         
     def has_sequence(self, connection, sequence_name, schema=None):

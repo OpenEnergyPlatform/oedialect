@@ -1,0 +1,4 @@
+urllib
+psycopg2
+sqlalchemy===1.0.12
+requests
