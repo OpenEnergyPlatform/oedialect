@@ -1,6 +1,9 @@
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import Connection, Transaction
 import sqlalchemy
 import psycopg2
+import login
+import requests
+import json
 
 class OEConnection():
     """
@@ -12,21 +15,29 @@ class OEConnection():
     """
 
     def __init__(self):
-        pass
+        response = post('open_raw_connection', {})['content']
+        self.__id = response['connection_id']
+        self.__transactions = set()
+        self.__cursors = set()
+        self.__closed = False
     """
         TODO: Look at PGDialect in sqlalchemy.dialects.postgresql.base
     """
     def close(self, *args, **kwargs):
-        raise NotImplementedError
+        pass
+        #response = post('close_raw_connection', {})
 
     def commit(self, *args, **kwargs):
-        raise NotImplementedError
+        for key in self.__transactions:
+            self.__transactions[key].commit()
 
     def rollback(self, *args, **kwargs):
-        raise NotImplementedError
+        for key in self.__transactions:
+            self.__transactions[key].rollback()
 
     def cursor(self, *args, **kwargs):
-        cursor = OECursor()
+        cursor = OECursor(self.__id)
+        self.__cursors.add(cursor)
         return cursor
 
     """
@@ -102,6 +113,10 @@ class OEConnection():
 class OECursor:
     description = None
 
+    def __init__(self, connection_id):
+        response = post('open_cursor', {'connection_id': connection_id})['content']
+        self.__id = response['cursor_id']
+
     def __replace_params(self, jsn, params):
         if type(jsn) == dict:
             for k in jsn:
@@ -110,7 +125,6 @@ class OECursor:
         elif type(jsn) == list:
             return list(map(lambda x: self.__replace_params(x, params), jsn))
         elif type(jsn) in [str, sqlalchemy.sql.elements.quoted_name, sqlalchemy.sql.elements._truncated_label]:
-            print(jsn, params)
             return (jsn % params).strip("'<>").replace('\'', '\"')
             # print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn)
         else:
@@ -129,31 +143,56 @@ class OECursor:
         self.data = self.data[size:]
         return resu
 
-    def execute(self, context, params):
-        def get_column(dic):
-            col = sqlalchemy.Column()
-
-            dic['nullable'] = dic['null_ok']
-            col.__dict__ = dic
-            col.table = None
-            return col
-
-        query = self.__replace_params(context.compiled.string, params)
+    def execute(self, query, params=None):
+        if not isinstance(query, dict):
+            query = query.string
+        if params:
+            query = self.__replace_params(query, params)
         # query = context.compiled.string
         # print query
-        t = query.pop('type')
-        r = post(t, query)
+        command = query.pop('type')
+        return self.__execute_by_post(command, query)
+
+    def close(self):
+        post('close_cursor', {'cursor_id': self.__id})
+
+
+    def __execute_by_post(self, command, query):
+
+        r = post(command,query)
 
         result = r['content']
-
         if 'description' in result:
             self.description = result['description']
-            print("description", self.description)
             self.data = result['data']
             self.rowcount = len(self.data)
-    def close(self):
-        print('Close cursor')
+        else: # Test
+            self.data = [result]
+            self.rowcount = 1
 
+urlheaders = {
+    'Content-type': 'application/x-www-form-urlencoded',
+    'Accept': 'text/javascript, text/html, application/xml, text/xml, application/json */*',
+    'Accept-Encoding': 'gzip,deflate,sdch',
+    'Accept-Charset': 'utf-8',
+    'Authorization': login.secret_key
+}
+
+class ConnectionException(Exception):
+    pass
+
+def post(suffix, query):
+    query = json.dumps(query)
+    ans = requests.post(
+        'http://localhost:8000/api/%s' % suffix,
+        data={'query':query}, headers=urlheaders)
+
+    if ans.status_code == 500:
+        raise ConnectionException(ans)
+
+    # ans = requests.post('http://193.175.187.164/data/api/action/dataconnection_%s' % suffix, data=query, headers=urlheaders)
+    # if ans.status_code == 400:
+    return ans.json()
 
 """
 class OEExecutionContext_psycopg2(PGExecutionContext):
