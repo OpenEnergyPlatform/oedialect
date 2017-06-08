@@ -1,9 +1,9 @@
-from sqlalchemy.engine import Connection, Transaction
-import sqlalchemy
-import psycopg2
-import login
-import requests
 import json
+
+import requests
+import sqlalchemy
+
+import login
 
 
 class OEConnection():
@@ -21,12 +21,14 @@ class OEConnection():
         self.__transactions = set()
         self.__cursors = set()
         self.__closed = False
+
     """
         TODO: Look at PGDialect in sqlalchemy.dialects.postgresql.base
     """
+
     def close(self, *args, **kwargs):
         pass
-        #response = post('close_raw_connection', {})
+        # response = post('close_raw_connection', {})
 
     def commit(self, *args, **kwargs):
         for key in self.__transactions:
@@ -115,7 +117,8 @@ class OECursor:
     description = None
 
     def __init__(self, connection_id):
-        response = post('open_cursor', {'connection_id': connection_id})['content']
+        response = post('open_cursor', {'connection_id': connection_id})[
+            'content']
         self.__id = response['cursor_id']
 
     def __replace_params(self, jsn, params):
@@ -125,13 +128,14 @@ class OECursor:
             return jsn
         elif type(jsn) == list:
             return list(map(lambda x: self.__replace_params(x, params), jsn))
-        elif type(jsn) in [str, sqlalchemy.sql.elements.quoted_name, sqlalchemy.sql.elements._truncated_label]:
+        elif type(jsn) in [str, sqlalchemy.sql.elements.quoted_name,
+                           sqlalchemy.sql.elements._truncated_label]:
             return (jsn % params).strip("'<>").replace('\'', '\"')
             # print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn)
         elif isinstance(jsn, int):
             return jsn
         else:
-            raise Exception("Unknown jsn type (%s) in %s"%(type(jsn),jsn))
+            raise Exception("Unknown jsn type (%s) in %s" % (type(jsn), jsn))
 
     def fetchone(self):
         response = post('fetch_one', {}, cursor_id=self.__id)[
@@ -162,14 +166,14 @@ class OECursor:
     def close(self):
         post('close_cursor', {}, cursor_id=self.__id)
 
-
     def __execute_by_post(self, command, query):
 
-        r = post(command,query, cursor_id=self.__id)
+        r = post(command, query, cursor_id=self.__id)
 
         result = r['content']
         if 'description' in result:
             self.description = result['description']
+
 
 urlheaders = {
     'Content-type': 'application/x-www-form-urlencoded',
@@ -179,8 +183,10 @@ urlheaders = {
     'Authorization': login.secret_key
 }
 
+
 class ConnectionException(Exception):
     pass
+
 
 def post(suffix, query, cursor_id=None):
     query = json.dumps(query)
@@ -188,11 +194,11 @@ def post(suffix, query, cursor_id=None):
     data = {'query': query}
 
     if cursor_id:
-        data['cursor_id']=cursor_id
+        data['cursor_id'] = cursor_id
 
     ans = requests.post(
         'http://localhost:8000/api/%s' % suffix,
-         data=data, headers=urlheaders)
+        data=data, headers=urlheaders)
 
     if ans.status_code == 500:
         raise ConnectionException(ans)
@@ -200,6 +206,7 @@ def post(suffix, query, cursor_id=None):
     # ans = requests.post('http://193.175.187.164/data/api/action/dataconnection_%s' % suffix, data=query, headers=urlheaders)
     # if ans.status_code == 400:
     return ans.json()
+
 
 """
 class OEExecutionContext_psycopg2(PGExecutionContext):
