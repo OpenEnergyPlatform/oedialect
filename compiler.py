@@ -128,7 +128,10 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         """"
         TODO:
         """
-        return grouping.element._compiler_dispatch(self, **kwargs)
+        return {
+            'type': 'grouping',
+            'grouping':grouping.element._compiler_dispatch(self, **kwargs)
+        }
 
 
     def visit_join(self, join, asfrom=False, **kwargs):
@@ -529,7 +532,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             return {'type': 'function',
                     'function': ".".join(list(func.packagenames) + [name]),
                     'operands': self.function_argspec(func, **kwargs)}
-
 
     def visit_column(self, column, add_to_result_map=None,
                      include_table=True, **kwargs):
