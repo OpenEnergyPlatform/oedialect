@@ -17,6 +17,7 @@ from psycopg2.extensions import cursor as pg2_cursor
 import urllib
 import json
 from sqlalchemy import Table, MetaData
+import geoalchemy2
 import logging
 import dbapi
 

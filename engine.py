@@ -5,6 +5,7 @@ import login
 import requests
 import json
 
+
 class OEConnection():
     """
 
@@ -127,25 +128,30 @@ class OECursor:
         elif type(jsn) in [str, sqlalchemy.sql.elements.quoted_name, sqlalchemy.sql.elements._truncated_label]:
             return (jsn % params).strip("'<>").replace('\'', '\"')
             # print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn)
+        elif isinstance(jsn, int):
+            return jsn
         else:
             raise Exception("Unknown jsn type (%s) in %s"%(type(jsn),jsn))
 
     def fetchone(self):
-        return self.data.pop() if self.data else None
+        response = post('fetch_one', {}, cursor_id=self.__id)[
+            'content']
+        return response
 
     def fetchall(self):
-        return self.fetchmany(self.rowcount)
+        data = post('fetch_all', {}, cursor_id=self.__id)[
+            'content']
+        return data
 
     def fetchmany(self, size):
-        if not self.data:
-            return self.data
-        resu = self.data[:size]
-        self.data = self.data[size:]
-        return resu
+        response = post('fetch_many', {'size': size}, cursor_id=self.__id)[
+            'content']
+        return response
 
     def execute(self, query, params=None):
         if not isinstance(query, dict):
             query = query.string
+        query['cursor_id'] = self.__id
         if params:
             query = self.__replace_params(query, params)
         # query = context.compiled.string
@@ -154,21 +160,16 @@ class OECursor:
         return self.__execute_by_post(command, query)
 
     def close(self):
-        post('close_cursor', {'cursor_id': self.__id})
+        post('close_cursor', {}, cursor_id=self.__id)
 
 
     def __execute_by_post(self, command, query):
 
-        r = post(command,query)
+        r = post(command,query, cursor_id=self.__id)
 
         result = r['content']
         if 'description' in result:
             self.description = result['description']
-            self.data = result['data']
-            self.rowcount = len(self.data)
-        else: # Test
-            self.data = [result]
-            self.rowcount = 1
 
 urlheaders = {
     'Content-type': 'application/x-www-form-urlencoded',
@@ -181,11 +182,17 @@ urlheaders = {
 class ConnectionException(Exception):
     pass
 
-def post(suffix, query):
+def post(suffix, query, cursor_id=None):
     query = json.dumps(query)
+
+    data = {'query': query}
+
+    if cursor_id:
+        data['cursor_id']=cursor_id
+
     ans = requests.post(
         'http://localhost:8000/api/%s' % suffix,
-        data={'query':query}, headers=urlheaders)
+         data=data, headers=urlheaders)
 
     if ans.status_code == 500:
         raise ConnectionException(ans)
