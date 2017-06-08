@@ -9,6 +9,7 @@ from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, \
     COMPOUND_KEYWORDS
 from sqlalchemy.dialects import postgresql
 
+
 class OEDDLCompiler(PGDDLCompiler):
     def visit_create_table(self, create):
         jsn = {'type': 'create', 'table': create.element.name}
@@ -76,12 +77,10 @@ class OEDDLCompiler(PGDDLCompiler):
             jsn['schema'] = drop.element.schema
         return jsn
 
-
         return 'RETURNING ' + ', '.join(columns)
 
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
-
     def __str__(self):
         return ''
 
@@ -97,7 +96,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 c._compiler_dispatch(self, **kw)
                 for c in clauselist.clauses)
             if s]
-
 
     def visit_unary(self, unary, **kw):
         if unary.operator:
@@ -130,9 +128,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         """
         return {
             'type': 'grouping',
-            'grouping':grouping.element._compiler_dispatch(self, **kwargs)
+            'grouping': grouping.element._compiler_dispatch(self, **kwargs)
         }
-
 
     def visit_join(self, join, asfrom=False, **kwargs):
         d = {'type': 'join'}
@@ -147,7 +144,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         d['right'] = join.right._compiler_dispatch(self, asfrom=True, **kwargs)
         d['on'] = join.onclause._compiler_dispatch(self, **kwargs)
         return d
-
 
     def visit_insert(self, insert_stmt, **kw):
         self.stack.append(
@@ -461,7 +457,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 if clause is not None and len(clause)
                 ]}
 
-
     def visit_funcfilter(self, funcfilter, **kwargs):
         return {
             'type': 'funcfilter',
@@ -469,14 +464,12 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             'where': funcfilter.criterion._compiler_dispatch(self, **kwargs)
         }
 
-
     def visit_extract(self, extract, **kwargs):
         field = self.extract_map.get(extract.field, extract.field)
         return {
             'type': 'extract',
             'field': field,
             'expression': extract.expr._compiler_dispatch(self, **kwargs)}
-
 
     def visit_label(self, label,
                     add_to_result_map=None,
@@ -506,7 +499,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                     label.type
                 )
 
-            return {'type':'operator',
+            return {'type': 'operator',
                     'operator': OPERATORS[operators.as_].strip().lower(),
                     'labeled': label.element._compiler_dispatch(
                         self, within_columns_clause=True,
@@ -586,7 +579,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         return {'type': 'modifier_unary',
                 'operator': opstring,
                 'operand': unary.element._compiler_dispatch(self, **kw)}
-
 
     def _label_select_column(self, select, column,
                              populate_result_map,
@@ -755,9 +747,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         columns = [
             self._label_select_column(None, c, True, False, {})
             for c in expression._select_iterables(returning_cols)
-        ]
+            ]
         return columns
-
 
     def order_by_clause(self, select, **kw):
         order_by = select._order_by_clause._compiler_dispatch(self, **kw)
