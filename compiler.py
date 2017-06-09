@@ -364,8 +364,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             'within_columns_clause': False
         })
 
-        text = "SELECT "  # we're off to a good start !
-
         if select._hints:
             hint_text, byfrom = self._setup_select_hints(select)
             if hint_text:
@@ -373,11 +371,14 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         else:
             byfrom = None
 
+
+        """
         if select._prefixes:
             text += self._generate_prefixes(
                 select, select._prefixes, **kwargs)
-
-        text += self.get_select_precolumns(select, **kwargs)
+        """
+        if select._distinct:
+            jsn['distinct'] = True
 
         # the actual list of columns to print in the SELECT column list.
         inner_columns = [
