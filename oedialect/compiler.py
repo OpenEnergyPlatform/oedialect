@@ -700,7 +700,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         if (select._limit_clause is not None or
                     select._offset_clause is not None):
-            jsn['limit'] = self.limit_clause(select, **kwargs)
+            jsn.update(self.limit_clause(select, **kwargs))
 
         if select._for_update_arg is not None:
             jsn['for_update'] = self.for_update_clause(select, **kwargs)
