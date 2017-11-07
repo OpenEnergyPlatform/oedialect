@@ -502,10 +502,9 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
             return {'type': 'operator',
                     'operator': OPERATORS[operators.as_].strip().lower(),
-                    'labeled': label.element._compiler_dispatch(
+                    'operands': [label.element._compiler_dispatch(
                         self, within_columns_clause=True,
-                        within_label_clause=True, **kw),
-                    'label_name': self.preparer.format_label(label, labelname)}
+                        within_label_clause=True, **kw), self.preparer.format_label(label, labelname)]}
         elif render_label_only:
             return self.preparer.format_label(label, labelname)
         else:
@@ -566,20 +565,20 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             return jsn
 
     def _generate_generic_binary(self, binary, opstring, **kw):
-        return {'type': 'operator_binary',
-                'left': binary.left._compiler_dispatch(self, **kw),
-                'operator': opstring,
-                'right': binary.right._compiler_dispatch(self, **kw)}
+        return {'type': 'operator',
+                'operands': [binary.left._compiler_dispatch(self, **kw),
+                             binary.right._compiler_dispatch(self, **kw)],
+                'operator': opstring}
 
     def _generate_generic_unary_operator(self, unary, opstring, **kw):
-        return {'type': 'operator_unary',
+        return {'type': 'operator',
                 'operator': opstring,
-                'operand': unary.element._compiler_dispatch(self, **kw)}
+                'operands': [unary.element._compiler_dispatch(self, **kw)]}
 
     def _generate_generic_unary_modifier(self, unary, opstring, **kw):
-        return {'type': 'modifier_unary',
+        return {'type': 'modifier',
                 'operator': opstring,
-                'operand': unary.element._compiler_dispatch(self, **kw)}
+                'operands': [unary.element._compiler_dispatch(self, **kw)]}
 
     def _label_select_column(self, select, column,
                              populate_result_map,
