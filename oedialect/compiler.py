@@ -743,6 +743,14 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         self.stack.append(new_entry)
         return froms
 
+    def limit_clause(self, select, **kw):
+        d = {}
+        if select._limit_clause is not None:
+            d['limit'] = self.process(select._limit_clause, **kw)
+        if select._offset_clause is not None:
+            d['offset'] = self.process(select._offset_clause, **kw)
+        return d
+
     def returning_clause(self, stmt, returning_cols):
         columns = [
             self._label_select_column(None, c, True, False, {})
