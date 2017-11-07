@@ -3,8 +3,8 @@ import json
 import requests
 import sqlalchemy
 
-import login
-
+from oedialect import login
+from oedialect import error
 
 class OEConnection():
     """
@@ -15,9 +15,12 @@ class OEConnection():
         Connection methods
     """
 
-    def __init__(self):
-        response = post('open_raw_connection', {})['content']
-        self.__id = response['connection_id']
+    def __init__(self, host='localhost', port=80, user=''):
+        self.__host = host
+        self.__port = port
+        self.__user = user
+        response = self.post('open_raw_connection', {})['content']
+        self._id = response['connection_id']
         self.__transactions = set()
         self.__cursors = set()
         self.__closed = False
@@ -39,7 +42,7 @@ class OEConnection():
             self.__transactions[key].rollback()
 
     def cursor(self, *args, **kwargs):
-        cursor = OECursor(self.__id)
+        cursor = OECursor(self)
         self.__cursors.add(cursor)
         return cursor
 
@@ -113,12 +116,35 @@ class OEConnection():
         raise NotImplementedError
 
 
+    def post(self, suffix, query, cursor_id=None):
+        query = json.dumps(query)
+
+        data = {'query': query}
+
+        if cursor_id:
+            data['cursor_id'] = cursor_id
+
+        ans = requests.post(
+            'http://{host}:{port}/api/v0/advanced/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
+            data=data, headers=urlheaders)
+
+        if ans.status_code == 500:
+            raise ConnectionException(ans)
+
+        return ans.json()
+
 class OECursor:
     description = None
 
-    def __init__(self, connection_id):
-        response = post('open_cursor', {'connection_id': connection_id})[
-            'content']
+    def __init__(self, connection):
+        self.__connection = connection
+        try:
+            response = self.__connection.post('open_cursor', {'connection_id': connection._id})
+            if 'content' not in response:
+                raise error.CursorError('Could not open cursor: ' + str(response['reason']) if 'reason' in response else 'No reason returned')
+            response = response['content']
+        except:
+            raise
         self.__id = response['cursor_id']
 
     def __replace_params(self, jsn, params):
@@ -138,17 +164,17 @@ class OECursor:
             raise Exception("Unknown jsn type (%s) in %s" % (type(jsn), jsn))
 
     def fetchone(self):
-        response = post('fetch_one', {}, cursor_id=self.__id)[
+        response = self.__connection.post('fetch_one', {}, cursor_id=self.__id)[
             'content']
         return response
 
     def fetchall(self):
-        data = post('fetch_all', {}, cursor_id=self.__id)[
+        data = self.__connection.post('fetch_all', {}, cursor_id=self.__id)[
             'content']
         return data
 
     def fetchmany(self, size):
-        response = post('fetch_many', {'size': size}, cursor_id=self.__id)[
+        response = self.__connection.post('fetch_many', {'size': size}, cursor_id=self.__id)[
             'content']
         return response
 
@@ -164,15 +190,16 @@ class OECursor:
         return self.__execute_by_post(command, query)
 
     def close(self):
-        post('close_cursor', {}, cursor_id=self.__id)
+        self.__connection.post('close_cursor', {}, cursor_id=self.__id)
 
     def __execute_by_post(self, command, query):
 
-        r = post(command, query, cursor_id=self.__id)
+        r = self.__connection.post(command, query, cursor_id=self.__id)
 
         result = r['content']
         if 'description' in result:
             self.description = result['description']
+
 
 
 urlheaders = {
@@ -186,26 +213,6 @@ urlheaders = {
 
 class ConnectionException(Exception):
     pass
-
-
-def post(suffix, query, cursor_id=None):
-    query = json.dumps(query)
-
-    data = {'query': query}
-
-    if cursor_id:
-        data['cursor_id'] = cursor_id
-
-    ans = requests.post(
-        'http://localhost:8000/api/%s' % suffix,
-        data=data, headers=urlheaders)
-
-    if ans.status_code == 500:
-        raise ConnectionException(ans)
-
-    # ans = requests.post('http://193.175.187.164/data/api/action/dataconnection_%s' % suffix, data=query, headers=urlheaders)
-    # if ans.status_code == 400:
-    return ans.json()
 
 
 """

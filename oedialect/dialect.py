@@ -19,11 +19,11 @@ import json
 from sqlalchemy import Table, MetaData
 import geoalchemy2
 import logging
-import dbapi
+from oedialect import dbapi
 
 from sqlalchemy import BIGINT, Column, ForeignKey, Numeric
 
-from compiler import OEDDLCompiler, OECompiler
+from oedialect.compiler import OEDDLCompiler, OECompiler
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -212,23 +212,19 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     def do_rollback_twophase(self, connection, xid,
                              is_prepared=True, recover=False):
-        result = post('do_rollback_twophase', {'xid': xid,
+        result = connection.post('do_rollback_twophase', {'xid': xid,
                                                'is_prepared':is_prepared,
                                                'recover': recover})
 
     def do_commit_twophase(self, connection, xid,
                            is_prepared=True, recover=False):
-        result = post('do_commit_twophase', {'xid': xid,
+        result = connection.post('do_commit_twophase', {'xid': xid,
                                              'is_prepared': is_prepared,
                                              'recover': recover})
 
     def do_recover_twophase(self, connection):
-        result = post('do_recover_twophase', {})
+        result = connection.post('do_recover_twophase', {})
         return [row[0] for row in result]
 
     def on_connect(self):
         return None
-
-from sqlalchemy.dialects import registry
-
-registry.register("postgresql.oedialect", "dialect", "OEDialect")
