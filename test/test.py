@@ -25,8 +25,9 @@ conn = engine.connect()
 try:
     Session = sessionmaker(bind=engine)
     session = Session()
-    query = session.query(demand.EgoDpLoadarea)
-    session.execute(query)
+    query = session.query(demand.EgoDpLoadarea).limit(100)
+    res = session.execute(query)
+    print(list(res))
 except Exception as e:
     print("FAIL")
     traceback.print_exc()

@@ -6,6 +6,8 @@ import sqlalchemy
 from oedialect import login
 from oedialect import error
 
+from shapely import wkb
+
 class OEConnection():
     """
 
@@ -131,7 +133,9 @@ class OEConnection():
         if ans.status_code == 500:
             raise ConnectionException(ans)
 
-        return ans.json()
+        json_response = ans.json()
+
+        return json_response
 
 class OECursor:
     description = None
@@ -166,6 +170,11 @@ class OECursor:
     def fetchone(self):
         response = self.__connection.post('fetch_one', {}, cursor_id=self.__id)[
             'content']
+        if response:
+            for i, x in enumerate(self.description):
+                # Translate WKB-hex to binary representation
+                if x[1] == 17:
+                    response[i] = wkb.dumps(wkb.loads(response[i], hex=True))
         return response
 
     def fetchall(self):
