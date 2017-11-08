@@ -21,7 +21,7 @@ class OEConnection():
         self.__host = host
         self.__port = port
         self.__user = user
-        response = self.post('open_raw_connection', {})['content']
+        response = self.post('advanced/open_raw_connection', {})['content']
         self._id = response['connection_id']
         self.__transactions = set()
         self.__cursors = set()
@@ -127,13 +127,13 @@ class OEConnection():
             data['cursor_id'] = cursor_id
 
         ans = requests.post(
-            'http://{host}:{port}/api/v0/advanced/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
+            'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
             data=data, headers=urlheaders)
 
-        if 400 <= ans.status_code < 600:
-            raise ConnectionException(ans)
-
         json_response = ans.json()
+
+        if 400 <= ans.status_code < 600:
+            raise ConnectionException(json_response['reason'] if 'reason' in json_response else 'No reason returned')
 
         return json_response
 
@@ -143,7 +143,7 @@ class OECursor:
     def __init__(self, connection):
         self.__connection = connection
         try:
-            response = self.__connection.post('open_cursor', {'connection_id': connection._id})
+            response = self.__connection.post('advanced/open_cursor', {'connection_id': connection._id})
             if 'content' not in response:
                 raise error.CursorError('Could not open cursor: ' + str(response['reason']) if 'reason' in response else 'No reason returned')
             response = response['content']
@@ -168,7 +168,7 @@ class OECursor:
             raise Exception("Unknown jsn type (%s) in %s" % (type(jsn), jsn))
 
     def fetchone(self):
-        response = self.__connection.post('fetch_one', {}, cursor_id=self.__id)[
+        response = self.__connection.post('advanced/fetch_one', {}, cursor_id=self.__id)[
             'content']
         if response:
             for i, x in enumerate(self.description):
@@ -178,12 +178,12 @@ class OECursor:
         return response
 
     def fetchall(self):
-        data = self.__connection.post('fetch_all', {}, cursor_id=self.__id)[
+        data = self.__connection.post('advanced/fetch_all', {}, cursor_id=self.__id)[
             'content']
         return data
 
     def fetchmany(self, size):
-        response = self.__connection.post('fetch_many', {'size': size}, cursor_id=self.__id)[
+        response = self.__connection.post('advanced/fetch_many', {'size': size}, cursor_id=self.__id)[
             'content']
         return response
 
@@ -195,19 +195,24 @@ class OECursor:
             query = self.__replace_params(query, params)
         # query = context.compiled.string
         # print query
-        command = query.pop('type')
+        command = query.pop('command')
         return self.__execute_by_post(command, query)
 
     def close(self):
-        self.__connection.post('close_cursor', {}, cursor_id=self.__id)
+        self.__connection.post('advanced/close_cursor', {}, cursor_id=self.__id)
 
     def __execute_by_post(self, command, query):
 
         r = self.__connection.post(command, query, cursor_id=self.__id)
 
         result = r['content']
-        if 'description' in result:
-            self.description = result['description']
+        if result:
+            if isinstance(result, dict):
+                if 'description' in result:
+                    self.description = result['description']
+            else:
+                return result
+
 
 
 
