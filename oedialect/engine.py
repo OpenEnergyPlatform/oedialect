@@ -21,6 +21,7 @@ class OEConnection():
         self.__host = host
         self.__port = port
         self.__user = user
+        self.__token = password
         response = self.post('advanced/open_raw_connection', {})['content']
         self._id = response['connection_id']
         self.__transactions = set()
@@ -123,18 +124,29 @@ class OEConnection():
 
         data = {'query': query}
 
+        sender = requests.post
+        if 'request_type' in query:
+            if query['request_type'] == 'put':
+                sender = requests.put
+
+        data = {'query': query}
+
         if cursor_id:
             data['cursor_id'] = cursor_id
 
-        ans = requests.post(
+        header = dict(urlheaders)
+        header['Authorization'] = 'Token %s'%self.__token
+
+        ans = sender(
             'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
             data=data, headers=urlheaders)
 
-        json_response = ans.json()
+
 
         if 400 <= ans.status_code < 600:
+            json_response = ans.json()
             raise ConnectionException(json_response['reason'] if 'reason' in json_response else 'No reason returned')
-
+        json_response = ans.json()
         return json_response
 
 class OECursor:
@@ -221,7 +233,6 @@ urlheaders = {
     'Accept': 'text/javascript, text/html, application/xml, text/xml, application/json */*',
     'Accept-Encoding': 'gzip,deflate,sdch',
     'Accept-Charset': 'utf-8',
-    'Authorization': login.secret_key
 }
 
 
