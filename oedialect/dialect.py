@@ -73,7 +73,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         return None
 
     def has_schema(self, connection, schema):
-        return connection.cursor().execute({'type': 'has_schema',
+        return connection.connection.cursor().execute({'type': 'has_schema',
                               'schema': schema})
 
     def has_table(self, connection, table_name, schema=None):
@@ -81,7 +81,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query['type'] = 'has_table'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     def has_sequence(self, connection, sequence_name, schema=None):
         query = {'sequence_name': sequence_name}
@@ -89,14 +89,14 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
 
         query['type'] = 'has_sequence'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     def has_type(self, connection, type_name, schema=None):
         query = {'type_name': type_name}
         if schema:
             query['schema'] = schema
         query['type'] = 'has_type'
-        cursor = connection.cursor()
+        cursor = connection.connection.cursor()
         result = cursor.execute(query)
         return result
 
@@ -107,13 +107,13 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['type'] = 'get_table_oid'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_schema_names(self, connection, **kw):
         query = dict(kw)
         query['type'] = 'get_schema_names'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_table_names(self, connection, schema=None, **kw):
@@ -122,7 +122,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['type'] = 'get_table_names'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_view_names(self, connection, schema=None, **kw):
@@ -131,7 +131,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['type'] = 'get_view_names'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_view_definition(self, connection, view_name, schema=None, **kw):
@@ -140,7 +140,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['type'] = 'get_view_definition'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_columns(self, connection, table_name, schema=None, **kw):
@@ -149,7 +149,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['type'] = 'get_columns'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_pk_constraint(self, connection, table_name, schema=None, **kw):
@@ -158,7 +158,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['type'] = 'get_pk_constraint'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_foreign_keys(self, connection, table_name, schema=None,
@@ -171,14 +171,14 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
                 postgresql_ignore_search_path
         query.update(kw)
         query['type'] = 'get_pk_constraint'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_indexes(self, connection, table_name, schema, **kw):
         query = {'table_name': table_name, 'schema': schema}
         query.update(kw)
         query['type'] = 'get_indexes'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_unique_constraints(self, connection, table_name,
@@ -188,7 +188,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['type'] = 'get_unique_constraints'
-        return connection.cursor().execute(query)
+        return connection.connection.cursor().execute(query)
 
     def get_isolation_level(self, connection):
         query= {'type': 'get_isolation_level'}
@@ -207,23 +207,23 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
 
     def do_prepare_twophase(self, connection, xid):
-        result = connection.cursor().execute('do_prepare_twophase', {'xid': xid})
+        result = connection.connection.cursor().execute('do_prepare_twophase', {'xid': xid})
 
 
     def do_rollback_twophase(self, connection, xid,
                              is_prepared=True, recover=False):
-        result = connection.post('do_rollback_twophase', {'xid': xid,
+        result = connection.connection.post('do_rollback_twophase', {'xid': xid,
                                                'is_prepared':is_prepared,
                                                'recover': recover})
 
     def do_commit_twophase(self, connection, xid,
                            is_prepared=True, recover=False):
-        result = connection.post('do_commit_twophase', {'xid': xid,
+        result = connection.connection.post('do_commit_twophase', {'xid': xid,
                                              'is_prepared': is_prepared,
                                              'recover': recover})
 
     def do_recover_twophase(self, connection):
-        result = connection.post('do_recover_twophase', {})
+        result = connection.connection.post('do_recover_twophase', {})
         return [row[0] for row in result]
 
     def on_connect(self):
