@@ -16,8 +16,8 @@ class OEDDLCompiler(PGDDLCompiler):
         return ''
 
     def visit_create_table(self, create):
-        jsn = {'command': 'schema/{schema}/tables/{table}/'.format(
-            schema=create.element.schema,
+        jsn = {'request_type': 'put', 'command': 'schema/{schema}/tables/{table}/'.format(
+            schema=create.element.schema if create.element.schema else 'sandbox',
             table=create.element.name
         )}
 
