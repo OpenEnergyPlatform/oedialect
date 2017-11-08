@@ -130,7 +130,7 @@ class OEConnection():
             'http://{host}:{port}/api/v0/advanced/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
             data=data, headers=urlheaders)
 
-        if 400 < ans.status_code < 600:
+        if 400 <= ans.status_code < 600:
             raise ConnectionException(ans)
 
         json_response = ans.json()
