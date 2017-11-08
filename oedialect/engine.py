@@ -120,12 +120,8 @@ class OEConnection():
 
 
     def post(self, suffix, query, cursor_id=None):
-        query = json.dumps(query)
-
-        data = {'query': query}
-
         sender = requests.post
-        if 'request_type' in query:
+        if isinstance(query, dict) and 'request_type' in query:
             if query['request_type'] == 'put':
                 sender = requests.put
 
@@ -139,7 +135,7 @@ class OEConnection():
 
         ans = sender(
             'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
-            data=data, headers=urlheaders)
+            json=data, headers=header)
 
 
 
@@ -215,24 +211,22 @@ class OECursor:
 
     def __execute_by_post(self, command, query):
 
-        r = self.__connection.post(command, query, cursor_id=self.__id)
+        response = self.__connection.post(command, query, cursor_id=self.__id)
 
-        result = r['content']
-        if result:
-            if isinstance(result, dict):
-                if 'description' in result:
-                    self.description = result['description']
+        if 'content' in response:
+            result = response['content']
+            if result:
+                if isinstance(result, dict):
+                    if 'description' in result:
+                        self.description = result['description']
+                else:
+                    return result
             else:
                 return result
 
 
 
-
 urlheaders = {
-    'Content-type': 'application/x-www-form-urlencoded',
-    'Accept': 'text/javascript, text/html, application/xml, text/xml, application/json */*',
-    'Accept-Encoding': 'gzip,deflate,sdch',
-    'Accept-Charset': 'utf-8',
 }
 
 
