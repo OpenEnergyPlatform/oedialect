@@ -17,7 +17,7 @@ class OEConnection():
         Connection methods
     """
 
-    def __init__(self, host='localhost', port=80, user=''):
+    def __init__(self, host='localhost', port=80, user='', database='', password=''):
         self.__host = host
         self.__port = port
         self.__user = user
@@ -130,7 +130,7 @@ class OEConnection():
             'http://{host}:{port}/api/v0/advanced/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
             data=data, headers=urlheaders)
 
-        if ans.status_code == 500:
+        if 400 < ans.status_code < 600:
             raise ConnectionException(ans)
 
         json_response = ans.json()
