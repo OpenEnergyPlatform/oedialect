@@ -159,6 +159,7 @@ class OECursor:
             raise
         self.__id = response['cursor_id']
 
+
     def __replace_params(self, jsn, params):
         if type(jsn) == dict:
             for k in jsn:
@@ -172,8 +173,11 @@ class OECursor:
             # print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn)
         elif isinstance(jsn, int):
             return jsn
+        elif callable(jsn):
+            return jsn(params)
         else:
             raise Exception("Unknown jsn type (%s) in %s" % (type(jsn), jsn))
+
 
     def fetchone(self):
         response = self.__connection.post('advanced/fetch_one', {}, cursor_id=self.__id)[

@@ -144,6 +144,14 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         d['on'] = join.onclause._compiler_dispatch(self, **kwargs)
         return d
 
+    def bindparam_string(self, name, positional_names=None, **kw):
+        if self.positional:
+            if positional_names is not None:
+                positional_names.append(name)
+            else:
+                self.positiontup.append(name)
+        return lambda d: d[name]
+
     def visit_insert(self, insert_stmt, **kw):
         self.stack.append(
             {'correlate_froms': set(),
@@ -175,7 +183,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         preparer = self.preparer
         supports_default_values = self.dialect.supports_default_values
 
-        jsn = {"type": "insert"}
+        jsn = {"command": "advanced/insert"}
 
         if insert_stmt._prefixes:
             text += self._generate_prefixes(insert_stmt,
@@ -225,11 +233,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         else:
             jsn['values'] = [[c[1] for c in crud_params]]
 
-        """if not jsn['table'].startswith('_'):
-            print(jsn['table'])
-            jsn['fields'].append(preparer.format_column(Column('_comment', BIGINT, ForeignKey('_'+table_text['table']+'_cor.id'))))
-            jsn['values'].append('%(_comment)')"""
-
         if self.returning and not self.returning_precedes_values:
             jsn["returning"] = returning_clause
 
@@ -270,7 +273,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         jsn['table'] = table_text['table']
 
-        jsn['schema'] = table_text['schema']
+        jsn['schema'] = table_text.get('schema', 'sandbox')
 
         if delete_stmt._returning:
             self.returning = delete_stmt._returning

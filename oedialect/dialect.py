@@ -51,7 +51,6 @@ class OEExecutionContext(PGExecutionContext):
 class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     ddl_compiler = OEDDLCompiler
     statement_compiler = OECompiler
-    supports_unicode_statements = False
     execution_ctx_cls = OEExecutionContext
 
     def __init__(self, *args, **kwargs):
