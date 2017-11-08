@@ -202,7 +202,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         jsn['table'] = table_text['table']
 
-        jsn['schema'] = table_text['schema']
+        jsn['schema'] = table_text.get('schema', 'sandbox')
 
         if crud_params_single or not supports_default_values:
             jsn["fields"] = [preparer.format_column(c[0])
