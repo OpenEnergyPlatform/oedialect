@@ -30,7 +30,6 @@ pp = pprint.PrettyPrinter(indent=2)
 logger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
 
-
 class OEExecutionContext(PGExecutionContext):
     @classmethod
     def _init_compiled(cls, dialect, connection, dbapi_connection,
@@ -41,10 +40,18 @@ class OEExecutionContext(PGExecutionContext):
         ec.statement = compiled
         return ec
 
+
+    @classmethod
+    def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl):
+        self = PGExecutionContext._init_ddl(dialect, connection, dbapi_connection, compiled_ddl)
+        self.statement = compiled_ddl.string
+        return self
+
+
 class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     ddl_compiler = OEDDLCompiler
     statement_compiler = OECompiler
-    #supports_unicode_statements = False
+    supports_unicode_statements = False
     execution_ctx_cls = OEExecutionContext
 
     def __init__(self, *args, **kwargs):
@@ -73,14 +80,14 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         return None
 
     def has_schema(self, connection, schema):
-        return connection.connection.cursor().execute({'type': 'has_schema',
+        return connection.connection.cursor().execute({'command': 'advanced/has_schema',
                               'schema': schema})
 
     def has_table(self, connection, table_name, schema=None):
-        query = {'table_name': table_name}
+        query = {'table': table_name}
         if schema:
             query['schema'] = schema
-        query['type'] = 'has_table'
+        query['command'] = 'advanced/has_table'
         return connection.connection.cursor().execute(query)
 
     def has_sequence(self, connection, sequence_name, schema=None):
@@ -88,14 +95,14 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
 
-        query['type'] = 'has_sequence'
+        query['command'] = 'advanced/has_sequence'
         return connection.connection.cursor().execute(query)
 
     def has_type(self, connection, type_name, schema=None):
         query = {'type_name': type_name}
         if schema:
             query['schema'] = schema
-        query['type'] = 'has_type'
+        query['command'] = 'advanced/has_type'
         cursor = connection.connection.cursor()
         result = cursor.execute(query)
         return result
@@ -106,13 +113,13 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['type'] = 'get_table_oid'
+        query['command'] = 'advanced/get_table_oid'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_schema_names(self, connection, **kw):
         query = dict(kw)
-        query['type'] = 'get_schema_names'
+        query['command'] = 'advanced/get_schema_names'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
@@ -121,7 +128,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['type'] = 'get_table_names'
+        query['command'] = 'advanced/get_table_names'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
@@ -130,7 +137,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['type'] = 'get_view_names'
+        query['command'] = 'advanced/get_view_names'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
@@ -139,7 +146,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['type'] = 'get_view_definition'
+        query['command'] = 'advanced/get_view_definition'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
@@ -148,7 +155,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['type'] = 'get_columns'
+        query['command'] = 'advanced/get_columns'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
@@ -157,7 +164,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['type'] = 'get_pk_constraint'
+        query['command'] = 'advanced/get_pk_constraint'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
@@ -170,14 +177,14 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['postgresql_ignore_search_path'] = \
                 postgresql_ignore_search_path
         query.update(kw)
-        query['type'] = 'get_pk_constraint'
+        query['command'] = 'advanced/get_pk_constraint'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
     def get_indexes(self, connection, table_name, schema, **kw):
         query = {'table_name': table_name, 'schema': schema}
         query.update(kw)
-        query['type'] = 'get_indexes'
+        query['command'] = 'advanced/get_indexes'
         return connection.connection.cursor().execute(query)
 
     @reflection.cache
@@ -187,11 +194,11 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['type'] = 'get_unique_constraints'
+        query['command'] = 'advanced/get_unique_constraints'
         return connection.connection.cursor().execute(query)
 
     def get_isolation_level(self, connection):
-        query= {'type': 'get_isolation_level'}
+        query= {'command': 'advanced/get_isolation_level'}
         cursor = connection.cursor()
         cursor.execute(query)
         val = cursor.fetchone()[0]
@@ -199,7 +206,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
 
     def set_isolation_level(self, connection, level):
-        query = {'type': 'set_isolation_level',
+        query = {'command': 'advanced/set_isolation_level',
                  'level': level}
         cursor = connection.cursor()
         result = cursor.execute(query)
@@ -207,23 +214,23 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
 
     def do_prepare_twophase(self, connection, xid):
-        result = connection.connection.cursor().execute('do_prepare_twophase', {'xid': xid})
+        result = connection.connection.cursor().execute('advanced/do_prepare_twophase', {'xid': xid})
 
 
     def do_rollback_twophase(self, connection, xid,
                              is_prepared=True, recover=False):
-        result = connection.connection.post('do_rollback_twophase', {'xid': xid,
+        result = connection.connection.post('advanced/do_rollback_twophase', {'xid': xid,
                                                'is_prepared':is_prepared,
                                                'recover': recover})
 
     def do_commit_twophase(self, connection, xid,
                            is_prepared=True, recover=False):
-        result = connection.connection.post('do_commit_twophase', {'xid': xid,
+        result = connection.connection.post('advanced/do_commit_twophase', {'xid': xid,
                                              'is_prepared': is_prepared,
                                              'recover': recover})
 
     def do_recover_twophase(self, connection):
-        result = connection.connection.post('do_recover_twophase', {})
+        result = connection.connection.post('advanced/do_recover_twophase', {})
         return [row[0] for row in result]
 
     def on_connect(self):
