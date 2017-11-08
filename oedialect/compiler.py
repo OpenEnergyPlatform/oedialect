@@ -11,31 +11,30 @@ from sqlalchemy.dialects import postgresql
 
 
 class OEDDLCompiler(PGDDLCompiler):
+
+    def __str__(self):
+        return ''
+
     def visit_create_table(self, create):
-        jsn = {'type': 'create', 'table': create.element.name}
-        if create.element.schema:
-            jsn['schema'] = create.element.schema
+        jsn = {'command': 'schema/{schema}/tables/{table}/'.format(
+            schema=create.element.schema,
+            table=create.element.name
+        )}
 
         # if only one primary key, specify it along with the column
         first_pk = False
         cols = []
         for create_column in create.columns:
             column = create_column.element
-            try:
-                processed = self.process(create_column,
-                                         first_pk=column.primary_key
-                                                  and not first_pk)
-                if processed is not None:
-                    cols.append(processed)
-                if column.primary_key:
-                    first_pk = True
-            except exc.CompileError as ce:
-                util.raise_from_cause(
-                    exc.CompileError(
-                        util.u("(in table '%s', column '%s'): %s") %
-                        (table.description, column.name, ce.args[0])
-                    ))
-        jsn['fields'] = cols
+            cd = {
+                'name': column.name,
+                'is_nullable': column.nullable,
+                'data_type': self.type_compiler.process(column.type)
+            }
+
+            #cd['character_maximum_length'] = column.type.elsize
+            cols.append(cd)
+        jsn['columns'] = cols
 
         return jsn
 
@@ -72,7 +71,7 @@ class OEDDLCompiler(PGDDLCompiler):
         return jsn
 
     def visit_drop_table(self, drop):
-        jsn = {'type': 'drop', 'table': drop.element.name}
+        jsn = {'command': 'advanced/drop', 'table': drop.element.name}
         if drop.element.schema:
             jsn['schema'] = drop.element.schema
         return jsn
@@ -317,7 +316,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                      nested_join_translation=False,
                      select_wraps_for=None,
                      **kwargs):
-        jsn = {'type': 'search'}
+        jsn = {'command': 'advanced/search'}
         needs_nested_translation = \
             select.use_labels and \
             not nested_join_translation and \
