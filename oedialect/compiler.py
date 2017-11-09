@@ -9,6 +9,7 @@ from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, \
     COMPOUND_KEYWORDS
 from sqlalchemy.dialects import postgresql
 
+DEFAULT_SCHEMA = 'sandbox'
 
 class OEDDLCompiler(PGDDLCompiler):
 
@@ -17,7 +18,7 @@ class OEDDLCompiler(PGDDLCompiler):
 
     def visit_create_table(self, create):
         jsn = {'request_type': 'put', 'command': 'schema/{schema}/tables/{table}/'.format(
-            schema=create.element.schema if create.element.schema else 'sandbox',
+            schema=create.element.schema if create.element.schema else DEFAULT_SCHEMA,
             table=create.element.name
         )}
 
@@ -210,7 +211,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         jsn['table'] = table_text['table']
 
-        jsn['schema'] = table_text.get('schema', 'sandbox')
+        jsn['schema'] = table_text.get('schema', DEFAULT_SCHEMA)
 
         if crud_params_single or not supports_default_values:
             jsn["fields"] = [preparer.format_column(c[0])
@@ -273,7 +274,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         jsn['table'] = table_text['table']
 
-        jsn['schema'] = table_text.get('schema', 'sandbox')
+        jsn['schema'] = table_text.get('schema', DEFAULT_SCHEMA)
 
         if delete_stmt._returning:
             self.returning = delete_stmt._returning
@@ -301,6 +302,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             jsn = {'type': 'table'}
             if getattr(table, "schema", None):
                 jsn['schema'] = table.schema
+            else:
+                jsn['schema'] = DEFAULT_SCHEMA
 
             jsn['table'] = table.name
 
@@ -558,7 +561,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         else:
             if table.schema:
                 jsn['schema'] = self.preparer.quote_schema(table.schema)
-
+            else:
+                jsn['schema'] = DEFAULT_SCHEMA
             tablename = table.name
             if isinstance(tablename, elements._truncated_label):
                 tablename = self._truncated_identifier("alias", tablename)
