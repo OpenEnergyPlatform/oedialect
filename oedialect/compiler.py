@@ -245,7 +245,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                            "selectable": delete_stmt})
         self.isdelete = True
 
-        jsn = {'type': "delete"}
+        jsn = {'command': "advanced/delete"}
 
         if delete_stmt._prefixes:
             text += self._generate_prefixes(delete_stmt,
