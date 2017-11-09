@@ -123,6 +123,8 @@ class OEConnection():
         if isinstance(query, dict) and 'request_type' in query:
             if query['request_type'] == 'put':
                 sender = requests.put
+            if query['request_type'] == 'delete':
+                sender = requests.delete
 
         data = {'query': query}
 

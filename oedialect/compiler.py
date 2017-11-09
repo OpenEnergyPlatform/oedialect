@@ -72,13 +72,13 @@ class OEDDLCompiler(PGDDLCompiler):
         return jsn
 
     def visit_drop_table(self, drop):
-        jsn = {'command': 'advanced/drop', 'table': drop.element.name}
-        if drop.element.schema:
-            jsn['schema'] = drop.element.schema
+        jsn = {'request_type': 'delete',
+               'command': 'schema/{schema}/tables/{table}/'.format(
+                   schema=drop.element.schema if drop.element.schema
+                                              else DEFAULT_SCHEMA,
+                   table=drop.element.name)
+        }
         return jsn
-
-        return 'RETURNING ' + ', '.join(columns)
-
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
     def __str__(self):
