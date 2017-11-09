@@ -19,7 +19,7 @@ import json
 from sqlalchemy import Table, MetaData
 import geoalchemy2
 import logging
-from oedialect import dbapi
+from oedialect import dbapi, compiler as oecomp
 
 from sqlalchemy import BIGINT, Column, ForeignKey, Numeric
 
@@ -86,8 +86,12 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         query = {'table': table_name}
         if schema:
             query['schema'] = schema
+        else:
+            query['schema'] = oecomp.DEFAULT_SCHEMA
+
         query['command'] = 'advanced/has_table'
-        return connection.connection.cursor().execute(query)
+        result = connection.connection.cursor().execute(query)
+        return result
 
     def has_sequence(self, connection, sequence_name, schema=None):
         query = {'sequence_name': sequence_name}
