@@ -22,7 +22,7 @@ class OEConnection():
         self.__port = port
         self.__user = user
         self.__token = password
-        response = self.post('advanced/open_raw_connection', {})['content']
+        response = self.post('advanced/connection/open', {})['content']
         self._id = response['connection_id']
         self.__transactions = set()
         self.__cursors = set()
@@ -33,8 +33,8 @@ class OEConnection():
     """
 
     def close(self, *args, **kwargs):
-        pass
-        # response = post('close_raw_connection', {})
+        response = self.post('connection/close', {'connection_id': self._id})
+
 
     def commit(self, *args, **kwargs):
         for key in self.__transactions:
@@ -151,7 +151,7 @@ class OECursor:
     def __init__(self, connection):
         self.__connection = connection
         try:
-            response = self.__connection.post('advanced/open_cursor', {'connection_id': connection._id})
+            response = self.__connection.post('advanced/cursor/open', {'connection_id': connection._id})
             if 'content' not in response:
                 raise error.CursorError('Could not open cursor: ' + str(response['reason']) if 'reason' in response else 'No reason returned')
             response = response['content']
@@ -180,7 +180,7 @@ class OECursor:
 
 
     def fetchone(self):
-        response = self.__connection.post('advanced/fetch_one', {}, cursor_id=self.__id)[
+        response = self.__connection.post('advanced/cursor/fetch_one', {}, cursor_id=self.__id)[
             'content']
         if response:
             for i, x in enumerate(self.description):
@@ -190,12 +190,12 @@ class OECursor:
         return response
 
     def fetchall(self):
-        data = self.__connection.post('advanced/fetch_all', {}, cursor_id=self.__id)[
+        data = self.__connection.post('advanced/cursor/fetch_all', {}, cursor_id=self.__id)[
             'content']
         return data
 
     def fetchmany(self, size):
-        response = self.__connection.post('advanced/fetch_many', {'size': size}, cursor_id=self.__id)[
+        response = self.__connection.post('advanced/cursor/fetch_many', {'size': size}, cursor_id=self.__id)[
             'content']
         return response
 
@@ -211,7 +211,7 @@ class OECursor:
         return self.__execute_by_post(command, query)
 
     def close(self):
-        self.__connection.post('advanced/close_cursor', {}, cursor_id=self.__id)
+        self.__connection.post('advanced/cursor/close', {}, cursor_id=self.__id)
 
     def __execute_by_post(self, command, query):
 
