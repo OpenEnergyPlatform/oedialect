@@ -33,12 +33,11 @@ class OEConnection():
     """
 
     def close(self, *args, **kwargs):
-        response = self.post('connection/close', {'connection_id': self._id})
+        response = self.post('advanced/connection/close', {'connection_id': self._id})
 
 
     def commit(self, *args, **kwargs):
-        for key in self.__transactions:
-            self.__transactions[key].commit()
+        response = self.post('advanced/connection/commit', {'connection_id': self._id})
 
     def rollback(self, *args, **kwargs):
         for key in self.__transactions:
