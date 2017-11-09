@@ -136,12 +136,14 @@ class OEConnection():
             'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
             json=data, headers=header)
 
-
+        try:
+            json_response = ans.json()
+        except:
+            raise ConnectionException('Answer contains no JSON: ' + repr(ans))
 
         if 400 <= ans.status_code < 600:
-            json_response = ans.json()
             raise ConnectionException(json_response['reason'] if 'reason' in json_response else 'No reason returned')
-        json_response = ans.json()
+
         return json_response
 
 class OECursor:
