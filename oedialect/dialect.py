@@ -90,8 +90,12 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = oecomp.DEFAULT_SCHEMA
 
         query['command'] = 'advanced/has_table'
-        result = connection.connection.cursor().execute(query)
-        return result
+        cursor = connection.connection.cursor()
+        try:
+            result = cursor.execute(query)
+            return result
+        finally:
+            cursor.close()
 
     def has_sequence(self, connection, sequence_name, schema=None):
         query = {'sequence_name': sequence_name}
