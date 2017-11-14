@@ -25,7 +25,7 @@ class OEConnection():
         response = self.post('advanced/connection/open', {})['content']
         self._id = response['connection_id']
         self.__transactions = set()
-        self.__cursors = set()
+        self._cursors = set()
         self.__closed = False
 
     """
@@ -33,6 +33,8 @@ class OEConnection():
     """
 
     def close(self, *args, **kwargs):
+        #for cursor in self._cursors:
+        #    cursor.close()
         response = self.post('advanced/connection/close', {'connection_id': self._id})
 
 
@@ -40,12 +42,12 @@ class OEConnection():
         response = self.post('advanced/connection/commit', {'connection_id': self._id})
 
     def rollback(self, *args, **kwargs):
-        for key in self.__transactions:
-            self.__transactions[key].rollback()
+        response = self.post('advanced/connection/rollback',
+                             {'connection_id': self._id})
 
     def cursor(self, *args, **kwargs):
         cursor = OECursor(self)
-        self.__cursors.add(cursor)
+        self._cursors.add(cursor)
         return cursor
 
     """
