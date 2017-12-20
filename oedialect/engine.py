@@ -152,6 +152,7 @@ class OEConnection():
 
 class OECursor:
     description = None
+    rowcount = -1
 
     def __init__(self, connection):
         self.__connection = connection
@@ -228,6 +229,8 @@ class OECursor:
                 if isinstance(result, dict):
                     if 'description' in result:
                         self.description = result['description']
+                    if 'rowcount' in result:
+                        self.rowcount = result['rowcount']
                 else:
                     return result
             else:

@@ -9,6 +9,8 @@ from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, \
     COMPOUND_KEYWORDS
 from sqlalchemy.dialects import postgresql
 
+from oedialect import error
+
 DEFAULT_SCHEMA = 'sandbox'
 
 class OEDDLCompiler(PGDDLCompiler):
@@ -79,6 +81,9 @@ class OEDDLCompiler(PGDDLCompiler):
                    table=drop.element.name)
         }
         return jsn
+
+    def visit_create_index(self, create):
+        raise error.NotSupportedError()
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
     def __str__(self):
