@@ -52,6 +52,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     ddl_compiler = OEDDLCompiler
     statement_compiler = OECompiler
     execution_ctx_cls = OEExecutionContext
+    _supports_create_index_concurrently = False
+    _supports_drop_index_concurrently = False
 
     def __init__(self, *args, **kwargs):
         self._engine = None
@@ -103,7 +105,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
 
         query['command'] = 'advanced/has_sequence'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     def has_type(self, connection, type_name, schema=None):
         query = {'type_name': type_name}
@@ -121,13 +124,15 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['command'] = 'advanced/get_table_oid'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_schema_names(self, connection, **kw):
         query = dict(kw)
         query['command'] = 'advanced/get_schema_names'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_table_names(self, connection, schema=None, **kw):
@@ -136,7 +141,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['command'] = 'advanced/get_table_names'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_view_names(self, connection, schema=None, **kw):
@@ -145,7 +151,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['command'] = 'advanced/get_view_names'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_view_definition(self, connection, view_name, schema=None, **kw):
@@ -154,7 +161,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['command'] = 'advanced/get_view_definition'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_columns(self, connection, table_name, schema=None, **kw):
@@ -163,7 +171,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['command'] = 'advanced/get_columns'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_pk_constraint(self, connection, table_name, schema=None, **kw):
@@ -172,7 +181,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['command'] = 'advanced/get_pk_constraint'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_foreign_keys(self, connection, table_name, schema=None,
@@ -185,14 +195,16 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
                 postgresql_ignore_search_path
         query.update(kw)
         query['command'] = 'advanced/get_pk_constraint'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_indexes(self, connection, table_name, schema, **kw):
         query = {'table_name': table_name, 'schema': schema}
         query.update(kw)
         query['command'] = 'advanced/get_indexes'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_unique_constraints(self, connection, table_name,
@@ -202,7 +214,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['schema'] = schema
         query.update(kw)
         query['command'] = 'advanced/get_unique_constraints'
-        return connection.connection.cursor().execute(query)
+        with connection.connect() as conn:
+            return conn.connection.cursor().execute(query)
 
     def get_isolation_level(self, connection):
         query= {'command': 'advanced/get_isolation_level'}
