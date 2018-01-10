@@ -83,7 +83,7 @@ class OEDDLCompiler(PGDDLCompiler):
         return jsn
 
     def visit_create_index(self, create):
-        raise error.NotSupportedError()
+        pass
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
     def __str__(self):
@@ -150,19 +150,24 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         d['on'] = join.onclause._compiler_dispatch(self, **kwargs)
         return d
 
-    def bindparam_string(self, name, positional_names=None, **kw):
+    def bindparam_string(self, name, positional_names=None, expanding=False, **kw):
         if self.positional:
             if positional_names is not None:
                 positional_names.append(name)
             else:
                 self.positiontup.append(name)
+        if expanding:
+            raise NotImplementedError
+            self.contains_expanding_parameters = True
+            return "([EXPANDING_%s])" % name
         return lambda d: d[name]
+
 
     def visit_insert(self, insert_stmt, **kw):
         self.stack.append(
             {'correlate_froms': set(),
-             "asfrom_froms": set(),
-             "selectable": insert_stmt})
+             'asfrom_froms': set(),
+             'selectable': insert_stmt})
 
         self.isinsert = True
         crud_params = crud._get_crud_params(self, insert_stmt, **kw)

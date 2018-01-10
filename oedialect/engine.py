@@ -206,6 +206,8 @@ class OECursor:
         return response
 
     def execute(self, query, params=None):
+        if query is None:
+            return
         if not isinstance(query, dict):
             query = query.string
         query['cursor_id'] = self.__id
