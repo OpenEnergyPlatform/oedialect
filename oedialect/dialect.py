@@ -165,18 +165,38 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             return conn.connection.cursor().execute(query)
 
     @reflection.cache
-    def get_columns(self, connection, table_name, schema=None, **kw):
-        query = {'table_name': table_name}
+    def get_columns_raw(self, engine, table_name, schema=None, **kw):
+        query = {'table': table_name}
         if schema:
             query['schema'] = schema
-        query.update(kw)
+
+        # Json does not permit compound dictionary keys.
+        # Fortunately, we need just the cached table name.
+        query['info_cache'] = {'+'.join(k[1]): v for k, v in kw['info_cache'].items() if k[0] == 'get_columns_raw'}
         query['command'] = 'advanced/get_columns'
-        with connection.connect() as conn:
-            return conn.connection.cursor().execute(query)
+        with engine.connect() as conn:
+            response = conn.connection.post('advanced/get_columns', query)
+
+            content = response['content']
+        return content
+
+    def get_columns(self, engine, table_name, schema=None, **kw):
+
+            content = self.get_columns_raw(engine, table_name, schema, **kw)
+            rows = content['columns']
+            domains = content['domains']
+            enums = content['enums']
+
+            columns = []
+            for name, format_type, default, notnull, attnum, table_oid in rows:
+                column_info = self._get_column_info(
+                    name, format_type, default, notnull, domains, enums, schema)
+                columns.append(column_info)
+            return columns
 
     @reflection.cache
     def get_pk_constraint(self, connection, table_name, schema=None, **kw):
-        query = {'table_name': table_name}
+        query = {'table': table_name}
         if schema:
             query['schema'] = schema
         query.update(kw)
@@ -187,7 +207,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     @reflection.cache
     def get_foreign_keys(self, connection, table_name, schema=None,
                          postgresql_ignore_search_path=False, **kw):
-        query = {'table_name': table_name}
+        query = {'table': table_name}
         if schema:
             query['schema'] = schema
         if postgresql_ignore_search_path:
@@ -200,7 +220,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     @reflection.cache
     def get_indexes(self, connection, table_name, schema, **kw):
-        query = {'table_name': table_name, 'schema': schema}
+        query = {'table': table_name, 'schema': schema}
         query.update(kw)
         query['command'] = 'advanced/get_indexes'
         with connection.connect() as conn:
@@ -209,7 +229,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     @reflection.cache
     def get_unique_constraints(self, connection, table_name,
                                schema=None, **kw):
-        query = {'table_name': table_name}
+        query = {'table': table_name}
         if schema:
             query['schema'] = schema
         query.update(kw)

@@ -138,7 +138,7 @@ class OEConnection():
 
         ans = sender(
             'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
-            json=data, headers=header)
+            json=json.loads(json.dumps(data)), headers=header)
 
         try:
             json_response = ans.json()
