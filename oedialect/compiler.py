@@ -32,7 +32,8 @@ class OEDDLCompiler(PGDDLCompiler):
             cd = {
                 'name': column.name,
                 'is_nullable': column.nullable,
-                'data_type': self.type_compiler.process(column.type)
+                'data_type': self.type_compiler.process(column.type),
+                'primary_key': column.primary_key
             }
 
             #cd['character_maximum_length'] = column.type.elsize
@@ -452,6 +453,63 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             return jsn  # "(" + text + ")"
         else:
             return jsn
+
+    def visit_compound_select(self, cs, asfrom=False,
+                              parens=True, compound_index=0, **kwargs):
+        toplevel = not self.stack
+
+        entry = self._default_stack_entry if toplevel else self.stack[-1]
+        need_result_map = toplevel or \
+            (compound_index == 0
+                and entry.get('need_result_map_for_compound', False))
+
+        self.stack.append(
+            {
+                'correlate_froms': entry['correlate_froms'],
+                'asfrom_froms': entry['asfrom_froms'],
+                'selectable': cs,
+                'need_result_map_for_compound': need_result_map
+            })
+
+        keyword = self.compound_keywords.get(cs.keyword)
+
+        jsn = {'type' : keyword,
+               'selects':
+                    [c._compiler_dispatch(self,
+                                          asfrom=asfrom, parens=False,
+                                          compound_index=i, **kwargs)
+                     for i, c in enumerate(cs.selects)]
+                }
+
+        group_by = cs._group_by_clause._compiler_dispatch(
+            self, asfrom=asfrom, **kwargs)
+        if group_by:
+            jsn['group_by'] = group_by
+
+        order_by = self.order_by_clause(cs, **kwargs)
+
+        if order_by:
+            jsn['order_by'] = order_by
+
+        boundaries = (cs._limit_clause is not None
+                 or cs._offset_clause is not None) and \
+            self.limit_clause(cs, **kwargs) or ""
+
+        if boundaries:
+            jsn.update(boundaries)
+
+        #if self.ctes and toplevel:
+        #    text = self._render_cte_clause() + text
+
+        self.stack.pop(-1)
+        #if asfrom and parens:
+        #    return "(" + text + ")"
+        #else:
+
+        if toplevel:
+            jsn['command'] = 'advanced/search'
+
+        return jsn
 
     def visit_cast(self, cast, **kwargs):
         return {

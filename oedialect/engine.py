@@ -210,6 +210,7 @@ class OECursor:
             return
         if not isinstance(query, dict):
             query = query.string
+        query = dict(query)
         query['cursor_id'] = self.__id
         if params:
             query = self.__replace_params(query, params)
@@ -217,6 +218,15 @@ class OECursor:
         # print query
         command = query.pop('command')
         return self.__execute_by_post(command, query)
+
+    def executemany(self, query, params=None):
+        if params is None:
+            return self.execute(query)
+        else:
+            val = None
+            for p in params:
+                val = self.execute(query, p)
+            return val
 
     def close(self):
         self.__connection.post('advanced/cursor/close', {}, cursor_id=self.__id)
