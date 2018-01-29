@@ -250,6 +250,31 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         return jsn
 
+    def visit_alias(self, alias, asfrom=False, ashint=False,
+                    iscrud=False,
+                    fromhints=None, **kwargs):
+
+        if asfrom or ashint:
+            if isinstance(alias.name, elements._truncated_label):
+                alias_name = self._truncated_identifier("alias", alias.name)
+            else:
+                alias_name = alias.name
+
+        if ashint:
+            return self.preparer.format_alias(alias, alias_name)
+        elif asfrom:
+            ret = alias.original._compiler_dispatch(self,
+                                                    asfrom=True, **kwargs)
+            ret['alias'] = self.preparer.format_alias(alias, alias_name)
+
+            if fromhints and alias in fromhints:
+                ret = self.format_from_hint_text(ret, alias,
+                                                 fromhints[alias], iscrud)
+
+            return ret
+        else:
+            return alias.original._compiler_dispatch(self, **kwargs)
+
     def visit_delete(self, delete_stmt, **kw):
         self.stack.append({'correlate_froms': set([delete_stmt.table]),
                            "asfrom_froms": set([delete_stmt.table]),
@@ -333,7 +358,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                      nested_join_translation=False,
                      select_wraps_for=None,
                      **kwargs):
-        jsn = {'command': 'advanced/search'}
+        jsn = {'command': 'advanced/search', 'type': 'select'}
         needs_nested_translation = \
             select.use_labels and \
             not nested_join_translation and \
@@ -473,7 +498,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         keyword = self.compound_keywords.get(cs.keyword)
 
-        jsn = {'type' : keyword,
+        jsn = {'keyword' : keyword,
+               'type': 'select',
                'selects':
                     [c._compiler_dispatch(self,
                                           asfrom=asfrom, parens=False,
@@ -627,14 +653,15 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         if table is None or not include_table or not table.named_with_column:
             return jsn
         else:
-            if table.schema:
-                jsn['schema'] = self.preparer.quote_schema(table.schema)
-            else:
-                jsn['schema'] = DEFAULT_SCHEMA
             tablename = table.name
             if isinstance(tablename, elements._truncated_label):
-                tablename = self._truncated_identifier("alias", tablename)
-            jsn['table'] = tablename
+                jsn['alias'] = self._truncated_identifier("alias", tablename)
+            else:
+                jsn['table'] = tablename
+                if table.schema:
+                    jsn['schema'] = self.preparer.quote_schema(table.schema)
+                else:
+                    jsn['schema'] = DEFAULT_SCHEMA
 
             return jsn
 
