@@ -592,6 +592,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             else:
                 labelname = label.name
             d['label'] = labelname
+        else:
+            d['label'] = label.name
 
         if render_label_with_as:
             if add_to_result_map is not None:
