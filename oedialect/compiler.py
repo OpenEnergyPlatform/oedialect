@@ -584,11 +584,14 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         within_label_clause)
         render_label_only = render_label_as_label is label
 
+        d = {'type': 'label'}
+
         if render_label_only or render_label_with_as:
             if isinstance(label.name, elements._truncated_label):
                 labelname = self._truncated_identifier("colident", label.name)
             else:
                 labelname = label.name
+            d['label'] = labelname
 
         if render_label_with_as:
             if add_to_result_map is not None:
@@ -599,16 +602,17 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                     label.type
                 )
 
-            return {'type': 'operator',
-                    'operator': OPERATORS[operators.as_].strip().lower(),
-                    'operands': [label.element._compiler_dispatch(
-                        self, within_columns_clause=True,
-                        within_label_clause=True, **kw), self.preparer.format_label(label, labelname)]}
-        elif render_label_only:
-            return self.preparer.format_label(label, labelname)
-        else:
-            return label.element._compiler_dispatch(
-                self, within_columns_clause=False, **kw)
+            d = {
+                'type': 'label',
+                'element': label.element._compiler_dispatch(
+                    self, within_columns_clause=True,
+                    within_label_clause=True, **kw),
+                'label': self.preparer.format_label(label, labelname)}
+
+        d['element'] = label.element._compiler_dispatch(
+            self, within_columns_clause=False, **kw)
+
+        return d
 
     def visit_function(self, func, add_to_result_map=None, **kwargs):
         if add_to_result_map is not None:
