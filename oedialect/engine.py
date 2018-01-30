@@ -2,6 +2,7 @@ import json
 
 import requests
 import sqlalchemy
+from sqlalchemy.dialects.postgresql.base import PGExecutionContext
 
 from oedialect import login
 from oedialect import error
@@ -205,11 +206,16 @@ class OECursor:
             'content']
         return response
 
-    def execute(self, query, params=None):
-        if query is None:
+    def execute(self, query_obj, params=None):
+        if query_obj is None:
             return
-        if not isinstance(query, dict):
-            query = query.string
+        if not isinstance(query_obj, dict):
+            if isinstance(query_obj, str):
+                raise Exception('Plain string commands are not supported.'
+                                'Please use SQLAlchemy datastructures')
+            query = query_obj.string
+        else:
+            query = query_obj
         query = dict(query)
         query['cursor_id'] = self.__id
         if params:
@@ -256,56 +262,3 @@ urlheaders = {
 
 class ConnectionException(Exception):
     pass
-
-
-"""
-class OEExecutionContext_psycopg2(PGExecutionContext):
-    @classmethod
-    def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl):
-        self = cls.__new__(cls)
-        self.root_connection = connection
-        self._dbapi_connection = dbapi_connection
-        self.dialect = connection.dialect
-        self.compiled = compiled = compiled_ddl
-        self.isddl = True
-
-        self.execution_options = compiled.statement._execution_options
-        if connection._execution_options:
-            self.execution_options = dict(self.execution_options)
-            self.execution_options.update(connection._execution_options)
-
-        if not dialect.supports_unicode_statements:
-            self.unicode_statement = ""  # util.text_type(compiled)
-            self.statement = ""  # dialect._encoder(self.unicode_statement)[0]
-        else:
-            self.statement = ""  # self.unicode_statement = util.text_type(compiled)
-
-        self.cursor = self.create_cursor()
-
-        self.compiled_parameters = []
-
-        if dialect.positional:
-            self.parameters = [dialect.execute_sequence_format()]
-        else:
-            self.parameters = [{}]
-
-        return self
-
-
-    def get_result_proxy(self):
-        # TODO: ouch
-        if logger.isEnabledFor(logging.INFO):
-            self._log_notices(self.cursor)
-
-        if self.__is_server_side:
-            return _result.BufferedRowResultProxy(self)
-        else:
-            return _result.ResultProxy(self)
-
-
-    def create_cursor(self):
-        # TODO: coverage for server side cursors + select.for_update()
-        cursor = OECursor(self)
-        self.__is_server_side = False
-        return cursor
-"""

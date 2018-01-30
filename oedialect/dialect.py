@@ -2,10 +2,10 @@ import sqlalchemy
 import requests
 from sqlalchemy.dialects import postgresql
 # import OEAPI
-from sqlalchemy.sql import crud, selectable, util, elements, compiler, \
+from sqlalchemy.sql import crud, selectable, elements, compiler, \
     functions, operators, expression
 import pprint
-from sqlalchemy import util as sa_util
+from sqlalchemy import util
 from sqlalchemy import exc
 
 from sqlalchemy.engine import reflection
@@ -31,22 +31,203 @@ logger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
 
 class OEExecutionContext(PGExecutionContext):
+
     @classmethod
     def _init_compiled(cls, dialect, connection, dbapi_connection,
                        compiled, parameters):
-        ec = PGExecutionContext._init_compiled(dialect,connection,
-                                                      dbapi_connection, compiled,
-                                                      parameters)
-        ec.statement = compiled
-        return ec
+        """Initialize execution context for a Compiled construct."""
+
+        self = cls.__new__(cls)
+        self.root_connection = connection
+        self._dbapi_connection = dbapi_connection
+        self.dialect = connection.dialect
+
+        self.compiled = compiled
+
+        # this should be caught in the engine before
+        # we get here
+        assert compiled.can_execute
+
+        self.execution_options = compiled.execution_options.union(
+            connection._execution_options)
+
+        self.result_column_struct = (
+            compiled._result_columns, compiled._ordered_columns,
+            compiled._textual_ordered_columns)
+
+        self.unicode_statement = util.text_type(compiled)
+        if not dialect.supports_unicode_statements:
+            self.statement = self.unicode_statement.encode(
+                self.dialect.encoding)
+        else:
+            self.statement = self.unicode_statement
+
+        self.isinsert = compiled.isinsert
+        self.isupdate = compiled.isupdate
+        self.isdelete = compiled.isdelete
+        self.is_text = compiled.isplaintext
+
+        if not parameters:
+            self.compiled_parameters = [compiled.construct_params()]
+        else:
+            self.compiled_parameters = \
+                [compiled.construct_params(m, _group_number=grp) for
+                 grp, m in enumerate(parameters)]
+
+            self.executemany = len(parameters) > 1
+
+        self.cursor = self.create_cursor()
+
+        if self.isinsert or self.isupdate or self.isdelete:
+            self.is_crud = True
+            self._is_explicit_returning = bool(compiled.statement._returning)
+            self._is_implicit_returning = bool(
+                compiled.returning and not compiled.statement._returning)
+
+        if self.compiled.insert_prefetch or self.compiled.update_prefetch:
+            if self.executemany:
+                self._process_executemany_defaults()
+            else:
+                self._process_executesingle_defaults()
+
+        processors = compiled._bind_processors
+
+        # Convert the dictionary of bind parameter values
+        # into a dict or list to be sent to the DBAPI's
+        # execute() or executemany() method.
+        parameters = []
+        if dialect.positional:
+            for compiled_params in self.compiled_parameters:
+                param = []
+                for key in self.compiled.positiontup:
+                    if key in processors:
+                        param.append(processors[key](compiled_params[key]))
+                    else:
+                        param.append(compiled_params[key])
+                parameters.append(dialect.execute_sequence_format(param))
+        else:
+            encode = not dialect.supports_unicode_statements
+            for compiled_params in self.compiled_parameters:
+
+                if encode:
+                    param = dict(
+                        (
+                            dialect._encoder(key)[0],
+                            processors[key](compiled_params[key])
+                            if key in processors
+                            else compiled_params[key]
+                        )
+                        for key in compiled_params
+                    )
+                else:
+                    param = dict(
+                        (
+                            key,
+                            processors[key](compiled_params[key])
+                            if key in processors
+                            else compiled_params[key]
+                        )
+                        for key in compiled_params
+                    )
+
+                parameters.append(param)
+        self.parameters = dialect.execute_sequence_format(parameters)
+
+        self.statement = compiled
+        return self
 
 
     @classmethod
     def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl):
-        self = PGExecutionContext._init_ddl(dialect, connection, dbapi_connection, compiled_ddl)
+        self = cls.__new__(cls)
+        self.root_connection = connection
+        self._dbapi_connection = dbapi_connection
+        self.dialect = connection.dialect
+
+        self.compiled = compiled = compiled_ddl
+        self.isddl = True
+
+        self.execution_options = compiled.execution_options
+        if connection._execution_options:
+            self.execution_options = dict(self.execution_options)
+            self.execution_options.update(connection._execution_options)
+
+        if not dialect.supports_unicode_statements:
+            self.unicode_statement = util.text_type(compiled)
+            self.statement = dialect._encoder(self.unicode_statement)[0]
+        else:
+            self.statement = self.unicode_statement = util.text_type(compiled)
+
+        self.cursor = self.create_cursor()
+        self.compiled_parameters = []
+
+        if dialect.positional:
+            self.parameters = [dialect.execute_sequence_format()]
+        else:
+            self.parameters = [{}]
+
         self.statement = compiled_ddl.string
         return self
 
+
+    def get_insert_default(self, column):
+        if column.primary_key and \
+                column is column.table._autoincrement_column:
+            if column.server_default and column.server_default.has_argument:
+
+                exc = {
+                    'command': 'advanced/search',
+                    'type': 'select',
+                    'fields': [column.server_default.arg]
+                }
+
+                # pre-execute passive defaults on primary key columns
+                return self._execute_scalar(exc
+                                            ,
+                                            column.type)
+
+            elif (column.default is None or
+                  (column.default.is_sequence and
+                   column.default.optional)):
+
+                # execute the sequence associated with a SERIAL primary
+                # key column. for non-primary-key SERIAL, the ID just
+                # generates server side.
+
+                try:
+                    seq_name = column._postgresql_seq_name
+                except AttributeError:
+                    tab = column.table.name
+                    col = column.name
+                    tab = tab[0:29 + max(0, (29 - len(col)))]
+                    col = col[0:29 + max(0, (29 - len(tab)))]
+                    name = "%s_%s_seq" % (tab, col)
+                    column._postgresql_seq_name = seq_name = name
+
+                if column.table is not None:
+                    effective_schema = self.connection.schema_for_object(
+                        column.table)
+                else:
+                    effective_schema = None
+
+                seq = {'type':'sequence', 'sequence': seq_name}
+                if effective_schema is not None:
+                    seq['schema'] = effective_schema
+
+                exc = {
+                    'command': 'advanced/search',
+                    'type': 'select',
+                    'fields': [
+                        {'type': 'function',
+                         'function': 'nextval',
+                         'operands': [seq]}
+                    ]
+                }
+
+
+                return self._execute_scalar(exc, column.type)
+
+        return super(PGExecutionContext, self).get_insert_default(column)
 
 class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     ddl_compiler = OEDDLCompiler

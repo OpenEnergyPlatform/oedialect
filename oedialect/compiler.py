@@ -86,6 +86,9 @@ class OEDDLCompiler(PGDDLCompiler):
     def visit_create_index(self, create):
         pass
 
+    def visit_create_sequence(self, create):
+        raise NotImplementedError
+
 class OECompiler(postgresql.psycopg2.PGCompiler):
     def __str__(self):
         return ''
