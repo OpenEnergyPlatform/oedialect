@@ -33,12 +33,40 @@ class OEDDLCompiler(PGDDLCompiler):
                 'name': column.name,
                 'is_nullable': column.nullable,
                 'data_type': self.type_compiler.process(column.type),
-                'primary_key': column.primary_key
+                'primary_key': column.primary_key,
+                'autoincrement': column.autoincrement,
             }
-
             #cd['character_maximum_length'] = column.type.elsize
             cols.append(cd)
         jsn['columns'] = cols
+
+        return jsn
+
+    def visit_create_sequence(self, create):
+
+        jsn = {'request_type': 'put',
+               'command': 'schema/{schema}/sequences/{seq}/'.format(
+                   schema=create.element.schema if create.element.schema else DEFAULT_SCHEMA,
+                   seq=create.element.name
+               )}
+        if create.element.increment is not None:
+            jsn['increment'] = create.element.increment
+        if create.element.start is not None:
+            jsn['start'] = create.element.start
+        if create.element.minvalue is not None:
+            jsn['minvalue'] = create.element.minvalue
+        if create.element.maxvalue is not None:
+            jsn['maxvalue'] = create.element.maxvalue
+        if create.element.nominvalue is not None:
+            jsn['nominvalue'] = True
+        if create.element.nomaxvalue is not None:
+            jsn['nomaxvalue'] = True
+        if create.element.cache is not None:
+            jsn['cache'] = create.element.cache
+        if create.element.order is True:
+            jsn['order'] = True
+        if create.element.cycle is not None:
+            jsn['cycle'] = True
 
         return jsn
 
@@ -86,8 +114,7 @@ class OEDDLCompiler(PGDDLCompiler):
     def visit_create_index(self, create):
         pass
 
-    def visit_create_sequence(self, create):
-        raise NotImplementedError
+
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
     def __str__(self):
