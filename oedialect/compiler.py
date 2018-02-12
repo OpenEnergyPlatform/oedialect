@@ -37,6 +37,14 @@ class OEDDLCompiler(PGDDLCompiler):
                 'autoincrement': column.autoincrement,
             }
             #cd['character_maximum_length'] = column.type.elsize
+            cd['foreign_key'] = []
+            for fk in column.foreign_keys:
+                cd['foreign_key'].append({
+                    'schema': fk.column.table.schema,
+                    'table': fk.column.table.name,
+                    'column': fk.column.name,
+                })
+
             cols.append(cd)
         jsn['columns'] = cols
 
@@ -114,6 +122,14 @@ class OEDDLCompiler(PGDDLCompiler):
     def visit_create_index(self, create):
         pass
 
+    def visit_primary_key_constraint(self, constraint):
+        raise NotImplementedError
+
+    def visit_foreign_key_constraint(self, constraint):
+        raise NotImplementedError
+
+    def visit_column_check_constraint(self, constraint):
+        raise NotImplementedError
 
 
 class OECompiler(postgresql.psycopg2.PGCompiler):

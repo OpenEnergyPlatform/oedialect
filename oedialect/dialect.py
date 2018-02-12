@@ -377,13 +377,12 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     @reflection.cache
     def get_pk_constraint(self, connection, table_name, schema=None, **kw):
-        query = {'table': table_name}
+        query = {'table': str(table_name)}
         if schema:
             query['schema'] = schema
-        query.update(kw)
-        query['command'] = 'advanced/get_pk_constraint'
         with connection.connect() as conn:
-            return conn.connection.cursor().execute(query)
+            val = conn.connection.post('advanced/get_pk_constraint', query)
+            return val['content']
 
     @reflection.cache
     def get_foreign_keys(self, connection, table_name, schema=None,
@@ -395,7 +394,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['postgresql_ignore_search_path'] = \
                 postgresql_ignore_search_path
         query.update(kw)
-        query['command'] = 'advanced/get_pk_constraint'
+        query['command'] = 'advanced/get_foreign_keys'
         with connection.connect() as conn:
             return conn.connection.cursor().execute(query)
 
