@@ -46,9 +46,45 @@ class OEDDLCompiler(PGDDLCompiler):
                 })
 
             cols.append(cd)
+
+        jsn = self.create_table_constraints(
+                create.element, _include_foreign_key_constraints=  # noqa
+                create.include_foreign_key_constraints)
+
         jsn['columns'] = cols
 
         return jsn
+
+    def create_table_constraints(self, table, _include_foreign_key_constraints=None):
+
+        # On some DB order is significant: visit PK first, then the
+        # other constraints (engine.ReflectionTest.testbasic failed on FB2)
+        constraints = []
+        if table.primary_key:
+            constraints.append(table.primary_key)
+
+        all_fkcs = table.foreign_key_constraints
+        if _include_foreign_key_constraints is not None:
+            omit_fkcs = all_fkcs.difference(_include_foreign_key_constraints)
+        else:
+            omit_fkcs = set()
+
+        constraints.extend([c for c in table._sorted_constraints
+                            if c is not table.primary_key and
+                            c not in omit_fkcs])
+
+        return [
+            p for p in
+            (self.process(constraint)
+                for constraint in constraints
+                if (
+                    constraint._create_rule is None or
+                    constraint._create_rule(self))
+                and (
+                    not self.dialect.supports_alter or
+                    not getattr(constraint, 'use_alter', False)
+            )) if p is not None
+        ]
 
     def visit_create_sequence(self, create):
 
