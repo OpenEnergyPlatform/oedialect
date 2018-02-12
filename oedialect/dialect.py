@@ -229,6 +229,7 @@ class OEExecutionContext(PGExecutionContext):
 
         return super(PGExecutionContext, self).get_insert_default(column)
 
+
 class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     ddl_compiler = OEDDLCompiler
     statement_compiler = OECompiler
@@ -300,13 +301,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     @reflection.cache
     def get_table_oid(self, connection, table_name, schema=None, **kw):
-        query = {'table_name': table_name}
-        if schema:
-            query['schema'] = schema
-        query.update(kw)
-        query['command'] = 'advanced/get_table_oid'
-        with connection.connect() as conn:
-            return conn.connection.cursor().execute(query)
+        raise NotImplementedError
 
     @reflection.cache
     def get_schema_names(self, connection, **kw):
@@ -394,6 +389,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             query['postgresql_ignore_search_path'] = \
                 postgresql_ignore_search_path
         query.update(kw)
+        if 'info_cache' in query:
+            del query['info_cache']
         query['command'] = 'advanced/get_foreign_keys'
         with connection.connect() as conn:
             return conn.connection.cursor().execute(query)
