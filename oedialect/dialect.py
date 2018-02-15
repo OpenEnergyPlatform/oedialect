@@ -410,9 +410,11 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         if schema:
             query['schema'] = schema
         query.update(kw)
-        query['command'] = 'advanced/get_unique_constraints'
+        if 'info_cache' in query:
+            del query['info_cache']
         with connection.connect() as conn:
-            return conn.connection.cursor().execute(query)
+            val = conn.connection.post('advanced/get_unique_constraints', query)
+            return val['content']
 
     def get_isolation_level(self, connection):
         query= {'command': 'advanced/get_isolation_level'}

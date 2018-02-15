@@ -47,7 +47,7 @@ class OEDDLCompiler(PGDDLCompiler):
 
             cols.append(cd)
 
-        jsn = self.create_table_constraints(
+        jsn['constraints'] = self.create_table_constraints(
                 create.element, _include_foreign_key_constraints=  # noqa
                 create.include_foreign_key_constraints)
 
@@ -159,13 +159,53 @@ class OEDDLCompiler(PGDDLCompiler):
         pass
 
     def visit_primary_key_constraint(self, constraint):
-        raise NotImplementedError
+        if len(constraint) == 0:
+            return []
+        jsn = {'type': 'primary_key'}
+        if constraint.name is not None:
+            jsn['name'] = self.preparer.format_constraint(constraint)
+
+        jsn['columns'] = [c.name for c in (constraint.columns_autoinc_first
+                                   if constraint._implicit_generated
+                                   else constraint.columns)]
+
+        return jsn
 
     def visit_foreign_key_constraint(self, constraint):
-        raise NotImplementedError
+        preparer = self.preparer
+
+        jsn = {'type': 'foreign_key'}
+        if constraint.name is not None:
+            jsn['name'] = self.preparer.format_constraint(constraint)
+
+        remote_table = list(constraint.elements)[0].column.table
+
+        jsn['columns'] = [f.parent.name
+                      for f in constraint.elements]
+
+        jsn['target_table'] = self.define_constraint_remote_table(
+                constraint, remote_table, preparer)
+
+        jsn['target_columns'] = [f.column.name
+                                 for f in constraint.elements]
+
+        jsn['match'] = self.define_constraint_match(constraint)
+        jsn['cascades'] = self.define_constraint_cascades(constraint)
+        jsn['deferrable'] = self.define_constraint_deferrability(constraint)
+        return jsn
+
+    def visit_unique_constraint(self, constraint):
+        jsn = {'type': 'unique'}
+        if constraint.name is not None:
+            jsn['name'] = self.preparer.format_constraint(constraint)
+
+        jsn['columns'] = [c.name for c in constraint]
+        jsn['deferrable'] = self.define_constraint_deferrability(constraint)
+        return jsn
 
     def visit_column_check_constraint(self, constraint):
         raise NotImplementedError
+
 
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
@@ -747,7 +787,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             else:
                 jsn['table'] = tablename
                 if table.schema:
-                    jsn['schema'] = self.preparer.quote_schema(table.schema)
+                    jsn['schema'] = table.schema
                 else:
                     jsn['schema'] = DEFAULT_SCHEMA
 
