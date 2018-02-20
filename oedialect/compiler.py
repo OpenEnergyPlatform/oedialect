@@ -793,6 +793,9 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
             return jsn
 
+    def visit_null(self, expr, **kw):
+        return None
+
     def _generate_generic_binary(self, binary, opstring, **kw):
         return {'type': 'operator',
                 'operands': [binary.left._compiler_dispatch(self, **kw),
