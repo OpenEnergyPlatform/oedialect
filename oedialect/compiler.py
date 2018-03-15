@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql.base import PGExecutionContext, \
 from sqlalchemy.sql import crud, selectable, util, elements, compiler, \
     functions, operators, expression
 from sqlalchemy import exc
+from sqlalchemy.sql.annotation import Annotated
 from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, \
     ILLEGAL_INITIAL_CHARACTERS, BIND_PARAMS, \
     BIND_PARAMS_ESC, OPERATORS, BIND_TEMPLATES, FUNCTIONS, EXTRACT_MAP, \
@@ -358,7 +359,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 jsn["returning_insert"] = returning_clause
 
         if insert_stmt.select is not None:
-            jsn['values'] = " %s" % self.process(self._insert_from_select, **kw)
+            jsn['values'] = self.process(self._insert_from_select, **kw)
+            jsn['method'] = 'select'
         elif not crud_params and supports_default_values:
             jsn['values'] = " DEFAULT VALUES"
         elif insert_stmt._has_multi_parameters:
@@ -371,6 +373,23 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             jsn["returning"] = returning_clause
 
         return jsn
+
+    def visit_getitem_binary(self, binary, operator, **kw):
+        return {
+            'type': 'operator',
+            'operator':'getitem',
+            'operands': [
+                self.process(binary.left, **kw),
+                self.process(binary.right, **kw)
+            ]
+        }
+
+    def visit_slice(self, element, **kw):
+        return {
+            'type':  'slice',
+            'start': self.process(element.start, **kw),
+            'stop':  self.process(element.stop, **kw),
+        }
 
     def visit_alias(self, alias, asfrom=False, ashint=False,
                     iscrud=False,

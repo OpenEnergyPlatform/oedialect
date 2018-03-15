@@ -121,6 +121,32 @@ class OEConnection():
         raise NotImplementedError
 
 
+    def post_expect_stream(self, suffix, query, cursor_id=None):
+        sender = requests.post
+
+        header = dict(urlheaders)
+        header['Authorization'] = 'Token %s' % self.__token
+
+        data = {}
+        if cursor_id:
+            data['cursor_id'] = cursor_id
+
+        response = sender(
+            'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host,
+                                                          port=self.__port,
+                                                          suffix=suffix),
+            json=json.loads(json.dumps(data)),
+            headers=header, stream=True)
+        try:
+            i = 0
+            for line in response.iter_lines():
+                yield json.loads(line.decode('utf8').replace("'", '"'))
+        except Exception as e:
+            print(e)
+            raise
+
+
+
     def post(self, suffix, query, cursor_id=None):
         sender = requests.post
         if isinstance(query, dict) and 'request_type' in query:
@@ -197,9 +223,8 @@ class OECursor:
         return response
 
     def fetchall(self):
-        data = self.__connection.post('advanced/cursor/fetch_all', {}, cursor_id=self.__id)[
-            'content']
-        return data
+        result = self.__connection.post_expect_stream('advanced/cursor/fetch_all', {}, cursor_id=self.__id)
+        return result
 
     def fetchmany(self, size):
         response = self.__connection.post('advanced/cursor/fetch_many', {'size': size}, cursor_id=self.__id)[

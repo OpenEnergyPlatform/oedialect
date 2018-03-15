@@ -17,6 +17,7 @@ from psycopg2.extensions import cursor as pg2_cursor
 import urllib
 import json
 from sqlalchemy import Table, MetaData
+import shapely
 import geoalchemy2
 import logging
 from oedialect import dbapi, compiler as oecomp
@@ -28,7 +29,6 @@ from oedialect.compiler import OEDDLCompiler, OECompiler
 pp = pprint.PrettyPrinter(indent=2)
 
 logger = logging.getLogger('sqlalchemy.dialects.postgresql')
-
 
 class OEExecutionContext(PGExecutionContext):
 
@@ -454,3 +454,17 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     def on_connect(self):
         return None
+
+# hic sunt dracones
+
+# We need to inject some functionality into WKBElements in order to handle the
+# static format for geometries returned by the API.
+# I'm sorry!
+
+orig_init_WKBElement = geoalchemy2.WKBElement.__init__
+
+def init_WKBElement(self, data, *args, **kwargs):
+    data = shapely.wkb.dumps(shapely.wkb.loads(data, hex=True))
+    orig_init_WKBElement(self, data, *args, **kwargs)
+
+geoalchemy2.WKBElement.__init__ = init_WKBElement
