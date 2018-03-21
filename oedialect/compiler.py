@@ -795,7 +795,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             name = self.escape_literal_column(name)
         # else:
         #    name = self.preparer.quote(name)
-        jsn = {'type': 'column', 'column': name}
+        jsn = {'type': 'column', 'column': name, 'is_literal': is_literal}
         table = column.table
         if table is None or not include_table or not table.named_with_column:
             return jsn
