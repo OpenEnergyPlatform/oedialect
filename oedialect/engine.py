@@ -1,3 +1,5 @@
+from datetime import datetime
+from dateutil.parser import parse as parse_date
 import json
 
 import requests
@@ -8,6 +10,17 @@ from oedialect import login
 from oedialect import error
 
 from shapely import wkb
+
+def date_handler(obj):
+    """
+    Implements a handler to serialize dates in JSON-strings
+    :param obj: An object
+    :return: The str method is called (which is the default serializer for JSON) unless the object has an attribute  *isoformat*
+    """
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    else:
+        return str(obj)
 
 class OEConnection():
     """
@@ -162,10 +175,9 @@ class OEConnection():
 
         header = dict(urlheaders)
         header['Authorization'] = 'Token %s'%self.__token
-
         ans = sender(
             'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
-            json=json.loads(json.dumps(data)), headers=header)
+            json=json.loads(json.dumps(data, default=date_handler)), headers=header, )
 
         try:
             json_response = ans.json()
@@ -211,6 +223,11 @@ class OECursor:
         else:
             raise Exception("Unknown jsn type (%s) in %s" % (type(jsn), jsn))
 
+    __cell_processors = {
+        17: lambda cell: wkb.dumps(wkb.loads(cell, hex=True)),
+        1114: lambda cell: parse_date(cell),
+        1082: lambda cell: parse_date(cell).date()
+    }
 
     def fetchone(self):
         response = self.__connection.post('advanced/cursor/fetch_one', {}, cursor_id=self.__id)[
@@ -218,8 +235,9 @@ class OECursor:
         if response:
             for i, x in enumerate(self.description):
                 # Translate WKB-hex to binary representation
-                if x[1] == 17:
-                    response[i] = wkb.dumps(wkb.loads(response[i], hex=True))
+                if response[i]:
+                    if x[1] in self.__cell_processors:
+                        response[i] = self.__cell_processors[x[1]](response[i])
         return response
 
     def fetchall(self):
