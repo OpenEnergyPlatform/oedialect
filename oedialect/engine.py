@@ -49,15 +49,17 @@ class OEConnection():
     def close(self, *args, **kwargs):
         #for cursor in self._cursors:
         #    cursor.close()
-        response = self.post('advanced/connection/close', {'connection_id': self._id})
+        response = self.post('advanced/connection/close', {},
+                             requires_connection_id=True)
 
 
     def commit(self, *args, **kwargs):
-        response = self.post('advanced/connection/commit', {'connection_id': self._id})
+        response = self.post('advanced/connection/commit', {},
+                             requires_connection_id=True)
 
     def rollback(self, *args, **kwargs):
-        response = self.post('advanced/connection/rollback',
-                             {'connection_id': self._id})
+        response = self.post('advanced/connection/rollback', {},
+                             requires_connection_id=True)
 
     def cursor(self, *args, **kwargs):
         cursor = OECursor(self)
@@ -160,7 +162,7 @@ class OEConnection():
 
 
 
-    def post(self, suffix, query, cursor_id=None):
+    def post(self, suffix, query, cursor_id=None, requires_connection_id=False):
         sender = requests.post
         if isinstance(query, dict) and 'request_type' in query:
             if query['request_type'] == 'put':
@@ -169,6 +171,9 @@ class OEConnection():
                 sender = requests.delete
 
         data = {'query': query}
+
+        if requires_connection_id:
+            data['connection_id'] = self._id
 
         if cursor_id:
             data['cursor_id'] = cursor_id
@@ -196,7 +201,7 @@ class OECursor:
     def __init__(self, connection):
         self.__connection = connection
         try:
-            response = self.__connection.post('advanced/cursor/open', {'connection_id': connection._id})
+            response = self.__connection.post('advanced/cursor/open', {}, requires_connection_id=True)
             if 'content' not in response:
                 raise error.CursorError('Could not open cursor: ' + str(response['reason']) if 'reason' in response else 'No reason returned')
             response = response['content']
@@ -260,13 +265,16 @@ class OECursor:
         else:
             query = query_obj
         query = dict(query)
+        requires_connection_id = query.get('requires_connection', False)
+
         query['cursor_id'] = self.__id
         if params:
             query = self.__replace_params(query, params)
         # query = context.compiled.string
         # print query
         command = query.pop('command')
-        return self.__execute_by_post(command, query)
+        return self.__execute_by_post(command, query,
+                                  requires_connection_id=requires_connection_id)
 
     def executemany(self, query, params=None):
         if params is None:
@@ -280,9 +288,10 @@ class OECursor:
     def close(self):
         self.__connection.post('advanced/cursor/close', {}, cursor_id=self.__id)
 
-    def __execute_by_post(self, command, query):
+    def __execute_by_post(self, command, query, requires_connection_id=False):
 
-        response = self.__connection.post(command, query, cursor_id=self.__id)
+        response = self.__connection.post(command, query, cursor_id=self.__id,
+                                requires_connection_id=requires_connection_id)
 
         if 'content' in response:
             result = response['content']

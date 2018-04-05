@@ -32,6 +32,24 @@ logger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
 class OEExecutionContext(PGExecutionContext):
 
+    def fire_sequence(self, sequence, type_):
+
+        seq = {'type': 'sequence', 'sequence': sequence.name}
+        if sequence.schema is not None:
+            seq['schema'] = sequence.schema
+
+        query = {
+            'command': 'advanced/search',
+            'type': 'select',
+            'fields': [
+                {'type': 'function',
+                 'function': 'nextval',
+                 'operands': [seq]}
+            ]
+        }
+
+        return self._execute_scalar(query, type_)
+
     @classmethod
     def _init_compiled(cls, dialect, connection, dbapi_connection,
                        compiled, parameters):

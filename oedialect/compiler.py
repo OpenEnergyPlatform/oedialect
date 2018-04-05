@@ -92,28 +92,46 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn = {'request_type': 'put',
                'command': 'schema/{schema}/sequences/{seq}/'.format(
                    schema=create.element.schema if create.element.schema else DEFAULT_SCHEMA,
-                   seq=create.element.name
-               )}
-        if create.element.increment is not None:
+                   seq=create.element.name),
+               'requires_connection': True
+               }
+        if hasattr(create.element, 'increment') \
+                and create.element.increment is not None:
             jsn['increment'] = create.element.increment
-        if create.element.start is not None:
+        if hasattr(create.element, 'start') \
+                and create.element.start is not None:
             jsn['start'] = create.element.start
-        if create.element.minvalue is not None:
+        if hasattr(create.element, 'minvalue') \
+                and create.element.minvalue is not None:
             jsn['minvalue'] = create.element.minvalue
-        if create.element.maxvalue is not None:
+        if hasattr(create.element, 'maxvalue') \
+                and create.element.maxvalue is not None:
             jsn['maxvalue'] = create.element.maxvalue
-        if create.element.nominvalue is not None:
+        if hasattr(create.element, 'nomaxvalue') \
+                and create.element.nominvalue is not None:
             jsn['nominvalue'] = True
-        if create.element.nomaxvalue is not None:
+        if hasattr(create.element, 'nomaxvalue') \
+                and create.element.nomaxvalue is not None:
             jsn['nomaxvalue'] = True
-        if create.element.cache is not None:
+        if hasattr(create.element, 'cache') \
+                and create.element.cache is not None:
             jsn['cache'] = create.element.cache
-        if create.element.order is True:
+        if hasattr(create.element, 'order') \
+                and create.element.order is True:
             jsn['order'] = True
-        if create.element.cycle is not None:
+        if hasattr(create.element, 'cycle') \
+                and create.element.cycle is not None:
             jsn['cycle'] = True
 
         return jsn
+
+    def visit_drop_sequence(self, drop):
+        return {'request_type': 'delete',
+               'command': 'schema/{schema}/sequences/{seq}/'.format(
+                   schema=drop.element.schema if drop.element.schema else DEFAULT_SCHEMA,
+                   seq=drop.element.name),
+               }
+
 
     def visit_create_column(self, create, first_pk=False):
         column = create.element
