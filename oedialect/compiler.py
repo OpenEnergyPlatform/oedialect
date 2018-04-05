@@ -109,19 +109,22 @@ class OEDDLCompiler(PGDDLCompiler):
             jsn['maxvalue'] = create.element.maxvalue
         if hasattr(create.element, 'nomaxvalue') \
                 and create.element.nominvalue is not None:
-            jsn['nominvalue'] = True
+            jsn['nominvalue'] = create.element.nominvalue
         if hasattr(create.element, 'nomaxvalue') \
                 and create.element.nomaxvalue is not None:
-            jsn['nomaxvalue'] = True
+            jsn['nomaxvalue'] = create.element.nomaxvalue
         if hasattr(create.element, 'cache') \
                 and create.element.cache is not None:
             jsn['cache'] = create.element.cache
         if hasattr(create.element, 'order') \
                 and create.element.order is True:
-            jsn['order'] = True
+            jsn['order'] = create.element.order
         if hasattr(create.element, 'cycle') \
                 and create.element.cycle is not None:
-            jsn['cycle'] = True
+            jsn['cycle'] = create.element.cycle
+        if hasattr(create.element, 'optional') \
+                and create.element.optional is not None:
+            jsn['optional'] = create.element.optional
 
         return jsn
 
