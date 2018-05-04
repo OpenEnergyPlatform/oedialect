@@ -1,34 +1,17 @@
-import sqlalchemy
-import requests
 from sqlalchemy.dialects import postgresql
-# import OEAPI
-from sqlalchemy.sql import crud, selectable, elements, compiler, \
-    functions, operators, expression
-import pprint
 from sqlalchemy import util
-from sqlalchemy import exc
-
 from sqlalchemy.engine import reflection
-from sqlalchemy.engine import result as _result
-from sqlalchemy.dialects.postgresql.base import PGExecutionContext, \
-    PGDDLCompiler, PGDialect
+from sqlalchemy.dialects.postgresql.base import PGExecutionContext
 
-from psycopg2.extensions import cursor as pg2_cursor
-import urllib
-import json
-from sqlalchemy import Table, MetaData
 import shapely
 import geoalchemy2
 import logging
+
 from oedialect import dbapi, compiler as oecomp
-
-from sqlalchemy import BIGINT, Column, ForeignKey, Numeric
-
 from oedialect.compiler import OEDDLCompiler, OECompiler
 
-pp = pprint.PrettyPrinter(indent=2)
-
 logger = logging.getLogger('sqlalchemy.dialects.postgresql')
+
 
 class OEExecutionContext(PGExecutionContext):
 
