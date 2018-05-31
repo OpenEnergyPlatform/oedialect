@@ -1,47 +1,71 @@
 from sqlalchemy import *
-from sqlalchemy.sql.ddl import CreateTable
-from oedialect.comment import get_comment_table
 from sqlalchemy.orm import sessionmaker
+from oedialect.login import OED_CREDS, DB_CREDS
 
-#from engine import OEConnection as OEConnection
-from oedialect import dialect
-import traceback
+import oedialect
 
-import egoio.db_tables.demand as demand
+OED_STRING = 'postgresql+oedialect://{creds}@localhost:8000'.format(creds=OED_CREDS)
+DB_STRING = 'postgresql://{creds}@localhost:5432'.format(creds=DB_CREDS)
 
-engine = create_engine('postgresql+oedialect://user@localhost:8000/')
-#engine = create_engine('postgresql://user:pass@localhost:5432/database')
+if __name__ == '__main__':
 
-metadata = MetaData(bind=engine)
+    engine = create_engine(OED_STRING)
+    metadata = MetaData(bind=engine)
 
-#engine.dialect._engine = engine
+    tname = 'oedtest'
+    sname = 'sandbox'
 
-#engine._connection_cls = OEConnection
+    table = Table(tname, metadata,
+                  Column('name', VARCHAR(50)),
+                  Column('age', INTEGER),
+                  schema=sname)
 
-conn = engine.connect()
+    print('Created table')
+
+    conn = engine.connect()
+    try:
+        Session = sessionmaker(bind=engine)
+        if not engine.dialect.has_table(conn, tname, sname):
+            table.create()
 
 
+            session = Session()
+            try:
+                insert_statement = table.insert().values(
+                    [
+                        dict(name='Peter', age=25),
+                        dict(name='Inge', age=42),
+                        dict(name='Horst', age=36)
+                    ]
+                )
+                session.execute(insert_statement)
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                raise
+            finally:
+                session.close()
 
-try:
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    query = session.query(demand.EgoDpLoadarea).limit(100)
-    res = session.execute(query)
-    print(list(res))
-except Exception as e:
-    print("FAIL")
-    traceback.print_exc()
-    print(e)
-    raise e
-else:
-    print("SUCCESS")
-finally:
+        print('Inserted data')
 
-    #dele = user.delete()
-    #conn.execute(dele)
-    traceback.print_exc()
-    #user_prefs.drop(engine)
-    #user.drop(engine)
-    #user.drop(engine)
-    print("DONE")
+        session = Session()
+        try:
 
+            result = session.query(table).filter(table.c.age>30)
+
+            if result:
+                for row in result:
+                    print(row)
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+        print('Queried dataset')
+
+        table.drop()
+
+        print('Drop table')
+    finally:
+        conn.close()

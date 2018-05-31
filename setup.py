@@ -16,7 +16,6 @@ setup(
           'postgres.oedialect = oedialect.dialect:OEDialect'
           ]
     }
-
 )
 
 
