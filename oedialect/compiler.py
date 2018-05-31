@@ -634,7 +634,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 select, select._suffixes, **kwargs)
 
         self.stack.pop(-1)
-        # print "select: %s" % jsn
 
         if asfrom and parens:
             return jsn  # "(" + text + ")"

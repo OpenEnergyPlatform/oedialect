@@ -144,6 +144,7 @@ class OEConnection():
 
         data = {}
         if cursor_id:
+            data['connection_id'] = self._id
             data['cursor_id'] = cursor_id
 
         response = sender(
@@ -157,7 +158,6 @@ class OEConnection():
             for line in response.iter_lines():
                 yield json.loads(line.decode('utf8').replace("'", '"'))
         except Exception as e:
-            print(e)
             raise
 
 
@@ -172,7 +172,7 @@ class OEConnection():
 
         data = {'query': query}
 
-        if requires_connection_id:
+        if requires_connection_id or cursor_id:
             data['connection_id'] = self._id
 
         if cursor_id:
@@ -220,7 +220,6 @@ class OECursor:
         elif type(jsn) in [str, sqlalchemy.sql.elements.quoted_name,
                            sqlalchemy.sql.elements._truncated_label]:
             return (jsn % params).strip("'<>").replace('\'', '\"')
-            # print "UNKNOWN TYPE: %s @ %s " % (type(jsn),jsn)
         elif isinstance(jsn, int):
             return jsn
         elif callable(jsn):
@@ -267,11 +266,11 @@ class OECursor:
         query = dict(query)
         requires_connection_id = query.get('requires_connection', False)
 
+        query['connection_id'] = self.__connection._id
         query['cursor_id'] = self.__id
         if params:
             query = self.__replace_params(query, params)
         # query = context.compiled.string
-        # print query
         command = query.pop('command')
         return self.__execute_by_post(command, query,
                                   requires_connection_id=requires_connection_id)
