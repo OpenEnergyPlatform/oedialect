@@ -1,6 +1,6 @@
 from sqlalchemy import *
 from sqlalchemy.orm import sessionmaker
-from oedialect.login import OED_CREDS, DB_CREDS
+from .login import OED_CREDS, DB_CREDS
 
 import oedialect
 
