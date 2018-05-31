@@ -1,15 +1,12 @@
-from datetime import datetime
-from dateutil.parser import parse as parse_date
 import json
 
 import requests
 import sqlalchemy
-from sqlalchemy.dialects.postgresql.base import PGExecutionContext
+from dateutil.parser import parse as parse_date
+from shapely import wkb
 
-from oedialect import login
 from oedialect import error
 
-from shapely import wkb
 
 def date_handler(obj):
     """
