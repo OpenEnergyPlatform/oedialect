@@ -483,7 +483,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         if delete_stmt._whereclause is not None:
             t = delete_stmt._whereclause._compiler_dispatch(self)
             if t:
-                jsn['where'] = " WHERE " + t
+                jsn['where'] = t
 
         if self.returning and not self.returning_precedes_values:
             jsn['returning'] = self.returning_clause(
@@ -639,6 +639,43 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             return jsn  # "(" + text + ")"
         else:
             return jsn
+
+    def visit_update(self, update_stmt, asfrom=False, **kw):
+        toplevel = not self.stack
+
+        self.stack.append(
+            {'correlate_froms': set([update_stmt.table]),
+             "asfrom_froms": set([update_stmt.table]),
+             "selectable": update_stmt})
+
+        extra_froms = update_stmt._extra_froms
+
+        d = {'command': 'advanced/update'}
+
+        d['table'] = update_stmt.table.name
+        if update_stmt.table.schema:
+            d['schema'] = update_stmt.table.schema.name
+
+
+        crud_params = crud._setup_crud_params(
+            self, update_stmt, crud.ISUPDATE, **kw)
+
+        include_table = extra_froms and \
+            self.render_table_with_column_in_update_from
+
+        d['fields'] = [c[0]._compiler_dispatch(self, include_table=include_table) for c in crud_params]
+        d['values'] = [c[1] for c in crud_params]
+
+        if update_stmt._whereclause is not None:
+            t = self.process(update_stmt._whereclause, **kw)
+            if t:
+                d['where'] = t
+
+        limit = self.update_limit_clause(update_stmt)
+        if limit:
+            d['limit'] = limit
+
+        return d
 
     def visit_compound_select(self, cs, asfrom=False,
                               parens=True, compound_index=0, **kwargs):
