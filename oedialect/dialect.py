@@ -231,6 +231,11 @@ class OEExecutionContext(PGExecutionContext):
         return super(PGExecutionContext, self).get_insert_default(column)
 
 
+    @property
+    def rowcount(self):
+        return self.cursor.rowcount
+
+
 class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     ddl_compiler = OEDDLCompiler
     statement_compiler = OECompiler
