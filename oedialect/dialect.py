@@ -465,7 +465,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 orig_init_WKBElement = geoalchemy2.WKBElement.__init__
 
 def init_WKBElement(self, data, *args, **kwargs):
-    data = shapely.wkb.dumps(shapely.wkb.loads(data, hex=True))
+    if isinstance(data, str):
+        data = shapely.wkb.dumps(shapely.wkb.loads(data, hex=True))
     orig_init_WKBElement(self, data, *args, **kwargs)
 
 geoalchemy2.WKBElement.__init__ = init_WKBElement
