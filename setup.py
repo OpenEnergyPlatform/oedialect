@@ -1,16 +1,21 @@
-from distutils.core import setup
+import setuptools
 
-setup(
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
     name='oedialect',
-    version='v0.0.1',
-    packages=['oedialect'],
-    install_requires=['sqlalchemy >= 1.2.0b1',
-                      'requests >= 2.13'],
-    url='',
-    license='',
+    version='v0.1',
     author='MGlauer',
-    author_email='',
-    description='',
+    author_email='martinglauer89@gmail.com',
+    description='SQL-Alchemy dialect for the OpenEnergy Platform',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url='https://github.com/openego/oedialect',
+    packages=setuptools.find_packages(exclude=["test"]),
+    install_requires=['sqlalchemy >= 1.2.0',
+                      'requests >= 2.13'],
+    keywords=['postgres', 'open', 'energy', 'database', 'sql', 'rest'],
     entry_points={
      'sqlalchemy.dialects': [
           'postgres.oedialect = oedialect.dialect:OEDialect'
