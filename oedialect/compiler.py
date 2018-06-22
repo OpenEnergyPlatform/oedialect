@@ -183,7 +183,7 @@ class OEDDLCompiler(PGDDLCompiler):
     def visit_primary_key_constraint(self, constraint):
         if len(constraint) == 0:
             return []
-        jsn = {'type': 'primary_key'}
+        jsn = {'constraint_type': 'primary_key'}
         if constraint.name is not None:
             jsn['name'] = self.preparer.format_constraint(constraint)
 
@@ -196,7 +196,7 @@ class OEDDLCompiler(PGDDLCompiler):
     def visit_foreign_key_constraint(self, constraint):
         preparer = self.preparer
 
-        jsn = {'type': 'foreign_key'}
+        jsn = {'constraint_type': 'foreign_key'}
         if constraint.name is not None:
             jsn['name'] = self.preparer.format_constraint(constraint)
 
