@@ -243,8 +243,11 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     _supports_create_index_concurrently = False
     _supports_drop_index_concurrently = False
 
+
     def __init__(self, *args, **kwargs):
         self._engine = None
+        kwargs['json_serializer'] = lambda x: x
+        kwargs['json_deserializer'] = lambda x: x
         super(OEDialect, self).__init__(*args, **kwargs)
         self.dbapi = dbapi
 
