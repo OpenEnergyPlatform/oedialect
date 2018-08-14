@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql.base import PGExecutionContext
 import shapely
 import geoalchemy2
 import logging
+import warnings
 
 from oedialect import dbapi, compiler as oecomp
 from oedialect.compiler import OEDDLCompiler, OECompiler
@@ -246,7 +247,15 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     def __init__(self, *args, **kwargs):
         self._engine = None
+        if kwargs.get('json_serializer') is not None:
+            warnings.warn('Use of the keyword \'json_serializer\' is not '
+                          'supported')
         kwargs['json_serializer'] = lambda x: x
+
+        if kwargs.get('json_deserializer') is not None:
+            warnings.warn('Use of the keyword \'json_serializer\' is not '
+                          'supported')
+
         kwargs['json_deserializer'] = lambda x: x
         super(OEDialect, self).__init__(*args, **kwargs)
         self.dbapi = dbapi
