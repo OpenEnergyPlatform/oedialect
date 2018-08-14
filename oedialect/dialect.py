@@ -410,7 +410,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         query.update(kw)
         query['command'] = 'advanced/get_indexes'
         with connection.connect() as conn:
-            conn.connection.cursor().execute(query)
+            return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_unique_constraints(self, connection, table_name,
