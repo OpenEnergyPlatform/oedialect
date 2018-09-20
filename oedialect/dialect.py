@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql.base import PGExecutionContext
 import shapely
 import geoalchemy2
 import logging
+import warnings
 
 from oedialect import dbapi, compiler as oecomp
 from oedialect.compiler import OEDDLCompiler, OECompiler
@@ -243,10 +244,20 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     _supports_create_index_concurrently = False
     _supports_drop_index_concurrently = False
 
+    supports_comments = False
+
 
     def __init__(self, *args, **kwargs):
         self._engine = None
+        if kwargs.get('json_serializer') is not None:
+            warnings.warn('Use of the keyword \'json_serializer\' is not '
+                          'supported')
         kwargs['json_serializer'] = lambda x: x
+
+        if kwargs.get('json_deserializer') is not None:
+            warnings.warn('Use of the keyword \'json_serializer\' is not '
+                          'supported')
+
         kwargs['json_deserializer'] = lambda x: x
         super(OEDialect, self).__init__(*args, **kwargs)
         self.dbapi = dbapi
@@ -375,7 +386,8 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             columns = []
             for name, format_type, default, notnull, attnum, table_oid in rows:
                 column_info = self._get_column_info(
-                    name, format_type, default, notnull, domains, enums, schema)
+                    name, format_type, default, notnull, domains, enums, schema,
+                    None)
                 columns.append(column_info)
             return columns
 
