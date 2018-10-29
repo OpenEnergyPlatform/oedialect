@@ -11,3 +11,7 @@ This repository is licensed under [GNU Affero General Public License v3.0 (AGPL-
 ## Installation
 
 pip install oedialect
+
+## Example
+
+You can find a basic example [here](doc/example/oedialect_basic_example.ipynb).
