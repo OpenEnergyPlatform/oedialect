@@ -144,10 +144,17 @@ class OEConnection():
             data['connection_id'] = self._id
             data['cursor_id'] = cursor_id
 
+        host = self.__host
+        if self.__host in ['oep.iks.cs.ovgu.de', 'oep2.iks.cs.ovgu.de',
+                           'oep.iws.cs.ovgu.de', 'oep2.iws.cs.ovgu.de',
+                           'openenergyplatform.org']:
+            host = 'openenergy-platform.org'
+
+        port = self.__port if self.__port != 80 else 443
+
         response = sender(
-            'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host,
-                                                          port=self.__port,
-                                                          suffix=suffix),
+            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
+                                                           suffix=suffix),
             json=json.loads(json.dumps(data)),
             headers=header, stream=True)
         try:
@@ -181,11 +188,20 @@ class OEConnection():
         header = dict(urlheaders)
         header['Authorization'] = 'Token %s'%self.__token
 
+        host = self.__host
+        if self.__host in ['oep.iks.cs.ovgu.de', 'oep2.iks.cs.ovgu.de',
+                           'oep.iws.cs.ovgu.de', 'oep2.iws.cs.ovgu.de',
+                           'openenergyplatform.org']:
+            host = 'openenergy-platform.org'
+
+
         port = self.__port if self.__port != 80 else 443
 
         ans = sender(
-            'https://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=port, suffix=suffix),
-            json=json.loads(json.dumps(data, default=date_handler)), headers=header, )
+            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
+                                                           suffix=suffix),
+            json=json.loads(json.dumps(data, default=date_handler)),
+            headers=header, )
 
         try:
             json_response = ans.json()
