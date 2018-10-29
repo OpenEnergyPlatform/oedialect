@@ -180,8 +180,11 @@ class OEConnection():
 
         header = dict(urlheaders)
         header['Authorization'] = 'Token %s'%self.__token
+
+        port = self.__port if self.__port != 80 else 443
+
         ans = sender(
-            'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
+            'https://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=port, suffix=suffix),
             json=json.loads(json.dumps(data, default=date_handler)), headers=header, )
 
         try:
