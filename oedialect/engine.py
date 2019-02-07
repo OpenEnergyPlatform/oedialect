@@ -44,8 +44,8 @@ class OEConnection():
     """
 
     def close(self, *args, **kwargs):
-        for cursor in self._cursors:
-            cursor.close()
+        #for cursor in self._cursors:
+        #    cursor.close()
         response = self.post('advanced/connection/close', {},
                              requires_connection_id=True)
 
