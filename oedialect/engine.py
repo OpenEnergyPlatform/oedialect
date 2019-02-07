@@ -1,5 +1,6 @@
 import json
 
+import os
 import requests
 import sqlalchemy
 from dateutil.parser import parse as parse_date
@@ -152,11 +153,19 @@ class OEConnection():
 
         port = self.__port if self.__port != 80 else 443
 
+        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'https')
+        assert protocol in ['http', 'https']
+
+        verify = os.environ.get('OEDIALECT_VERIFY_CERTIFICATE', 'TRUE') == 'TRUE'
+
         response = sender(
-            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
-                                                           suffix=suffix),
+            '{protocol}://{host}:{port}/api/v0/{suffix}'.format(
+                protocol=protocol,
+                host=host,
+                port=port,
+                suffix=suffix),
             json=json.loads(json.dumps(data)),
-            headers=header, stream=True)
+            headers=header, stream=True, verify=verify)
         try:
             i = 0
             for line in response.iter_lines():
@@ -197,11 +206,17 @@ class OEConnection():
 
         port = self.__port if self.__port != 80 else 443
 
+        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'https')
+        assert protocol in ['http', 'https']
+        verify = os.environ.get('OEDIALECT_VERIFY_CERTIFICATE', 'TRUE') == 'TRUE'
         ans = sender(
-            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
-                                                           suffix=suffix),
+            '{protocol}://{host}:{port}/api/v0/{suffix}'.format(
+                protocol=protocol,
+                host=host,
+                port=port,
+                suffix=suffix),
             json=json.loads(json.dumps(data, default=date_handler)),
-            headers=header)
+            headers=header, verify=verify)
 
         try:
             json_response = ans.json()
