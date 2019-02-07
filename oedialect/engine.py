@@ -153,7 +153,7 @@ class OEConnection():
         port = self.__port if self.__port != 80 else 443
 
         response = sender(
-            'http://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
+            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
                                                            suffix=suffix, verify=False),
             json=json.loads(json.dumps(data)),
             headers=header, stream=True)
@@ -198,7 +198,7 @@ class OEConnection():
         port = self.__port if self.__port != 80 else 443
 
         ans = sender(
-            'http://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
+            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
                                                            suffix=suffix),
             json=json.loads(json.dumps(data, default=date_handler)),
             headers=header, verify=False )
