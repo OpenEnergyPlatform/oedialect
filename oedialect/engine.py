@@ -154,7 +154,7 @@ class OEConnection():
 
         response = sender(
             'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
-                                                           suffix=suffix, verify=False),
+                                                           suffix=suffix),
             json=json.loads(json.dumps(data)),
             headers=header, stream=True)
         try:
@@ -201,7 +201,7 @@ class OEConnection():
             'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
                                                            suffix=suffix),
             json=json.loads(json.dumps(data, default=date_handler)),
-            headers=header, verify=False )
+            headers=header)
 
         try:
             json_response = ans.json()
