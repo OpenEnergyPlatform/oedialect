@@ -44,8 +44,8 @@ class OEConnection():
     """
 
     def close(self, *args, **kwargs):
-        #for cursor in self._cursors:
-        #    cursor.close()
+        for cursor in self._cursors:
+            cursor.close()
         response = self.post('advanced/connection/close', {},
                              requires_connection_id=True)
 
@@ -153,8 +153,8 @@ class OEConnection():
         port = self.__port if self.__port != 80 else 443
 
         response = sender(
-            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
-                                                           suffix=suffix),
+            'http://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
+                                                           suffix=suffix, verify=False),
             json=json.loads(json.dumps(data)),
             headers=header, stream=True)
         try:
@@ -198,10 +198,10 @@ class OEConnection():
         port = self.__port if self.__port != 80 else 443
 
         ans = sender(
-            'https://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
+            'http://{host}:{port}/api/v0/{suffix}'.format(host=host, port=port,
                                                            suffix=suffix),
             json=json.loads(json.dumps(data, default=date_handler)),
-            headers=header, )
+            headers=header, verify=False )
 
         try:
             json_response = ans.json()
