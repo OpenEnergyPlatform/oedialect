@@ -166,6 +166,9 @@ class OEConnection():
                 suffix=suffix),
             json=json.loads(json.dumps(data)),
             headers=header, stream=True, verify=verify)
+
+        process_returntype(response)
+
         try:
             i = 0
             for line in response.iter_lines():
@@ -223,10 +226,17 @@ class OEConnection():
         except:
             raise ConnectionException('Answer contains no JSON: ' + repr(ans))
 
-        if 400 <= ans.status_code < 600:
-            raise ConnectionException(json_response['reason'] if 'reason' in json_response else 'No reason returned')
+        process_returntype(ans, json_response)
 
         return json_response
+
+def process_returntype(response, content=None):
+    if content is None:
+        content = {}
+    if 400 < response.status_code < 500:
+        raise ConnectionException('HTTP %d (%s)'%(response.status_code,response.reason))
+    elif 500 <= response.status_code < 600:
+        raise ConnectionException('Server side error: ' + content.get('reason', 'No reason returned'))
 
 class OECursor:
     description = None
