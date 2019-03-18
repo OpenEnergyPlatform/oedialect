@@ -249,6 +249,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     def __init__(self, *args, **kwargs):
         self._engine = None
+        self.default_schema_name = 'model_draft'
         if kwargs.get('json_serializer') is not None:
             warnings.warn('Use of the keyword \'json_serializer\' is not '
                           'supported')

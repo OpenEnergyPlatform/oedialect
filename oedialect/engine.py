@@ -182,7 +182,7 @@ class OEConnection():
         header['Authorization'] = 'Token %s'%self.__token
         ans = sender(
             'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
-            json=json.loads(json.dumps(data, default=date_handler)), headers=header, )
+            json=json.loads(json.dumps(data, default=date_handler)), headers=header, allow_redirects=True)
 
         try:
             json_response = ans.json()
@@ -269,20 +269,26 @@ class OECursor:
         query['connection_id'] = self.__connection._id
         query['cursor_id'] = self.__id
         if params:
-            query = self.__replace_params(query, params)
+            if isinstance(params, tuple) and 'values' in query:
+                query['values'] = [self.__replace_params(query['values'][0], p) for p in params]
+            else:
+                query = self.__replace_params(query, params)
         # query = context.compiled.string
         command = query.pop('command')
         return self.__execute_by_post(command, query,
                                   requires_connection_id=requires_connection_id)
 
     def executemany(self, query, params=None):
+        print(query)
         if params is None:
             return self.execute(query)
         else:
-            val = None
-            for p in params:
-                val = self.execute(query, p)
-            return val
+            if query.isinsert and not (query.isdelete or query.isupdate):
+                return self.execute(query, params)
+            else:
+                for p in params:
+                    val = self.execute(query, p)
+                    yield val
 
     def close(self):
         self.__connection.post('advanced/cursor/close', {}, cursor_id=self.__id)
