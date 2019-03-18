@@ -1,5 +1,6 @@
 import json
 
+import os
 import requests
 import sqlalchemy
 from dateutil.parser import parse as parse_date
@@ -144,12 +145,30 @@ class OEConnection():
             data['connection_id'] = self._id
             data['cursor_id'] = cursor_id
 
+        host = self.__host
+        if self.__host in ['oep.iks.cs.ovgu.de', 'oep2.iks.cs.ovgu.de',
+                           'oep.iws.cs.ovgu.de', 'oep2.iws.cs.ovgu.de',
+                           'openenergyplatform.org']:
+            host = 'openenergy-platform.org'
+
+        port = self.__port if self.__port != 80 else 443
+
+        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'https')
+        assert protocol in ['http', 'https']
+
+        verify = os.environ.get('OEDIALECT_VERIFY_CERTIFICATE', 'TRUE') == 'TRUE'
+
         response = sender(
-            'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host,
-                                                          port=self.__port,
-                                                          suffix=suffix),
+            '{protocol}://{host}:{port}/api/v0/{suffix}'.format(
+                protocol=protocol,
+                host=host,
+                port=port,
+                suffix=suffix),
             json=json.loads(json.dumps(data)),
-            headers=header, stream=True)
+            headers=header, stream=True, verify=verify)
+
+        process_returntype(response)
+
         try:
             i = 0
             for line in response.iter_lines():
@@ -180,19 +199,44 @@ class OEConnection():
 
         header = dict(urlheaders)
         header['Authorization'] = 'Token %s'%self.__token
+
+        host = self.__host
+        if self.__host in ['oep.iks.cs.ovgu.de', 'oep2.iks.cs.ovgu.de',
+                           'oep.iws.cs.ovgu.de', 'oep2.iws.cs.ovgu.de',
+                           'openenergyplatform.org']:
+            host = 'openenergy-platform.org'
+
+
+        port = self.__port if self.__port != 80 else 443
+
+        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'https')
+        assert protocol in ['http', 'https']
+        verify = os.environ.get('OEDIALECT_VERIFY_CERTIFICATE', 'TRUE') == 'TRUE'
         ans = sender(
-            'http://{host}:{port}/api/v0/{suffix}'.format(host=self.__host, port=self.__port, suffix=suffix),
-            json=json.loads(json.dumps(data, default=date_handler)), headers=header, allow_redirects=True)
+            '{protocol}://{host}:{port}/api/v0/{suffix}'.format(
+                protocol=protocol,
+                host=host,
+                port=port,
+                suffix=suffix),
+            json=json.loads(json.dumps(data, default=date_handler)),
+            headers=header, verify=verify)
 
         try:
             json_response = ans.json()
         except:
             raise ConnectionException('Answer contains no JSON: ' + repr(ans))
 
-        if 400 <= ans.status_code < 600:
-            raise ConnectionException(json_response['reason'] if 'reason' in json_response else 'No reason returned')
+        process_returntype(ans, json_response)
 
         return json_response
+
+def process_returntype(response, content=None):
+    if content is None:
+        content = {}
+    if 400 < response.status_code < 500:
+        raise ConnectionException('HTTP %d (%s)'%(response.status_code,response.reason))
+    elif 500 <= response.status_code < 600:
+        raise ConnectionException('Server side error: ' + content.get('reason', 'No reason returned'))
 
 class OECursor:
     description = None
@@ -279,7 +323,6 @@ class OECursor:
                                   requires_connection_id=requires_connection_id)
 
     def executemany(self, query, params=None):
-        print(query)
         if params is None:
             return self.execute(query)
         else:
