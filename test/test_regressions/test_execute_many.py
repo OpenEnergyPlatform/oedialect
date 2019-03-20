@@ -1,6 +1,6 @@
 from sqlalchemy.testing import fixtures, config
 from sqlalchemy.testing.assertions import eq_
-from sqlalchemy import Column, INTEGER, JSON, Table, testing, select
+from sqlalchemy import Column, INTEGER, JSON, Table, testing, select, insert
 
 class ExecuteTest(fixtures.TablesTest):
     __backend__ = True
@@ -14,5 +14,9 @@ class ExecuteTest(fixtures.TablesTest):
 
     def test_execute_many(self):
         engine = config.db
+        t = getattr(self.tables, self.table)
         with engine.connect() as connection:
-            connection.execute(Table.insert(), range(1000))
+            data = [dict(value=x) for x in range(10)]
+            connection.execute(insert(t), data)
+            eq_(list(connection.execute(select([t.c.value]))),
+                [(x['value'],) for x in data])
