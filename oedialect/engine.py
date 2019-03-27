@@ -198,7 +198,8 @@ class OEConnection():
             data['cursor_id'] = cursor_id
 
         header = dict(urlheaders)
-        header['Authorization'] = 'Token %s'%self.__token
+        if self.__token:
+            header['Authorization'] = 'Token %s'%self.__token
 
         host = self.__host
         if self.__host in ['oep.iks.cs.ovgu.de', 'oep2.iks.cs.ovgu.de',
@@ -323,6 +324,7 @@ class OECursor:
                                   requires_connection_id=requires_connection_id)
 
     def executemany(self, query, params=None):
+        print(query)
         if params is None:
             return self.execute(query)
         else:
