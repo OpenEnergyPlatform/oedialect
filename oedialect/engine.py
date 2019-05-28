@@ -138,7 +138,8 @@ class OEConnection():
         sender = requests.post
 
         header = dict(urlheaders)
-        header['Authorization'] = 'Token %s' % self.__token
+        if self.__token:
+            header['Authorization'] = 'Token %s' % self.__token
 
         data = {}
         if cursor_id:
@@ -210,7 +211,7 @@ class OEConnection():
 
         port = self.__port if self.__port != 80 else 443
 
-        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'https')
+        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'http')
         assert protocol in ['http', 'https']
         verify = os.environ.get('OEDIALECT_VERIFY_CERTIFICATE', 'TRUE') == 'TRUE'
         ans = sender(
