@@ -211,7 +211,7 @@ class OEConnection():
 
         port = self.__port if self.__port != 80 else 443
 
-        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'http')
+        protocol = os.environ.get('OEDIALECT_PROTOCOL', 'https')
         assert protocol in ['http', 'https']
         verify = os.environ.get('OEDIALECT_VERIFY_CERTIFICATE', 'TRUE') == 'TRUE'
         ans = sender(
