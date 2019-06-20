@@ -189,7 +189,7 @@ class OEConnection():
 
         if 'info_cache' in query:
             del query['info_cache']
-        
+
         data = {'query': query}
 
         if requires_connection_id or cursor_id:
@@ -235,7 +235,7 @@ class OEConnection():
 def process_returntype(response, content=None):
     if content is None:
         content = {}
-    if 400 < response.status_code < 500:
+    if 400 <= response.status_code < 500:
         raise ConnectionException('HTTP %d (%s)'%(response.status_code,response.reason))
     elif 500 <= response.status_code < 600:
         raise ConnectionException('Server side error: ' + content.get('reason', 'No reason returned'))
