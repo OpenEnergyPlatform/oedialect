@@ -190,7 +190,7 @@ class OEConnection():
 
         if 'info_cache' in query:
             del query['info_cache']
-        
+
         data = {'query': query}
 
         if requires_connection_id or cursor_id:
