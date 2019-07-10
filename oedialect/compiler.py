@@ -784,14 +784,11 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         d = {'type': 'label'}
 
-        if render_label_only or render_label_with_as:
-            if isinstance(label.name, elements._truncated_label):
-                labelname = self._truncated_identifier("colident", label.name)
-            else:
-                labelname = label.name
-            d['label'] = labelname
+        if isinstance(label.name, elements._truncated_label):
+            labelname = self._truncated_identifier("colident", label.name)
         else:
-            d['label'] = label.name
+            labelname = label.name
+        d['label'] = labelname
 
         if render_label_with_as:
             if add_to_result_map is not None:
