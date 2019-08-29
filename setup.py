@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='oedialect',
-    version='v0.0.5',
+    version='v0.0.6',
     author='MGlauer',
     author_email='martinglauer89@gmail.com',
     description='SQL-Alchemy dialect for the OpenEnergy Platform',
@@ -17,7 +17,9 @@ setuptools.setup(
         'sqlalchemy >= 1.2.0',
         'requests >= 2.13',
         'psycopg2-binary',
-        'geoalchemy2'
+        'geoalchemy2',
+        'shapely',
+        'python-dateutil'
     ],
     keywords=['postgres', 'open', 'energy', 'database', 'sql', 'rest'],
     entry_points={
