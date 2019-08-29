@@ -18,8 +18,18 @@ Here is a template for new release sections
 ```
 ## [Unreleased]
 
+## [0.0.6] 2019-08-29
+
 ### Added
 - CHANGELOG
+
+## [0.0.5] 2019-02-08
+
+No description
+
+## [0.0.4] 2018-10-29
+
+No description
 
 ## [0.0.3] 2018-09-20
 
