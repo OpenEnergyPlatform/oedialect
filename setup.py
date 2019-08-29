@@ -15,12 +15,14 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=["test"]),
     install_requires=[
         'sqlalchemy >= 1.2.0',
+        'geoalchemy2',
         'requests >= 2.13',
         'psycopg2-binary',
         'geoalchemy2',
         'shapely',
         'python-dateutil'
     ],
+    tests_require=['black', 'tox', 'pytest', 'pandas', 'sqlahelper', 'geojson'],
     keywords=['postgres', 'open', 'energy', 'database', 'sql', 'rest'],
     entry_points={
      'sqlalchemy.dialects': [

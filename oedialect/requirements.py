@@ -20,3 +20,11 @@ class Requirements(SuiteRequirements):
     @property
     def index_reflection(self):
         return exclusions.closed()
+
+    @property
+    def order_by_col_from_union(self):
+        return exclusions.closed()
+
+    @property
+    def broken_cx_oracle6_numerics(self):
+        return exclusions.closed()

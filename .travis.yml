@@ -1,7 +1,64 @@
+dist: trusty
+sudo: false
 language: python
-python:
-  - "3.4"
-# command to install dependencies
-install: "pip install -r requirements.txt"
-# command to run tests
-script: nose
+cache: pip
+services:
+  - postgresql
+addons:
+  postgresql: 9.6
+  apt:
+    packages:
+    - postgresql-9.6-postgis-2.3
+
+env:
+  global:
+    - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+    - SEGFAULT_SIGNALS=all
+    - OEP_DB_USER="postgres" OEP_DB_PW="postgres" OEDB_USER="postgres" OEPB_PW="postgres"
+    - $LOCAL_OEP_USER="user" $LOCAL_OEP_USER="token"
+  matrix:
+    - TOXENV=check
+    - TOXENV=docs
+matrix:
+  include:
+    - python: '3.5'
+      env:
+        - TOXENV=py3
+    - python: '3.6'
+      env:
+        - TOXENV=py3
+before_install:
+  - python --version
+  - uname -a
+  - lsb_release -a
+  - sudo apt-get update
+install:
+  - pip install tox
+  - virtualenv --version
+  - easy_install --version
+  - pip --version
+  - tox --version
+
+before_script:
+  - psql -U postgres -c 'CREATE DATABASE test;'
+  - psql -U postgres -c "CREATE EXTENSION postgis;" test
+  - psql -U postgres -c "CREATE DATABASE oedb"
+  - psql -U postgres -c "CREATE EXTENSION postgis;" oedb
+  - psql -U postgres -c "CREATE DATABASE django"
+  - pip install -r requirements.txt
+  - git clone git@github.com:OpenEnergyPlatform/oeplatform.git oep
+  - pip install oep/requirements.txt
+  - cp oep/oeplatform/securitysettings.py.default oep/oeplatform/securitysettings.py
+  - python oep/manage.py migrate
+  - python oep/manage.py alembic upgrade head
+  - python oep/manage.py shell -c "from login.models import myuser, Token; u=myuser.objects.create_user('$LOCAL_OEP_USER','test@test.com','test');t=Token.objects.create(user=u);t.key='$LOCAL_OEP_USER';t.save();u.save()'
+  -
+script:
+  - tox -v
+after_failure:
+  - more .tox/log/* | cat
+  - more .tox/*/log/* | cat
+notifications:
+  email:
+    on_success: never
+    on_failure: always

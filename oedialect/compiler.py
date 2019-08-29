@@ -9,6 +9,8 @@ from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, \
     BIND_PARAMS_ESC, OPERATORS, BIND_TEMPLATES, FUNCTIONS, EXTRACT_MAP, \
     COMPOUND_KEYWORDS
 from sqlalchemy.dialects import postgresql
+from geoalchemy2.elements import WKBElement
+from sqlalchemy.ext.compiler import compiles
 
 from oedialect import error
 
@@ -1072,3 +1074,12 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
     def for_update_clause(self, select, **kw):
         return {'for_update': True}
+
+
+    def visit_wkb_element(self, element):
+        return element.compile()
+
+
+@compiles(WKBElement)
+def compiles_WKBElement(element, compiler):
+    compiler.visit_wkb_element(element)
