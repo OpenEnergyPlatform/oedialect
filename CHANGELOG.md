@@ -13,6 +13,8 @@ Here is a template for new release sections
 -
 ### Changed
 -
+### Fixed
+-
 ### Removed
 -
 ```
@@ -21,7 +23,13 @@ Here is a template for new release sections
 ## [0.0.6] 2019-08-29
 
 ### Added
+- test for executemany ([c3b912](https://github.com/OpenEnergyPlatform/oedialect/commit/c3b912abc3764dd0768d07e08945dca1ea21bfbc))
+- handler for time interval([f3f28f](https://github.com/OpenEnergyPlatform/oedialect/commit/f3f28ff0e171fd290da4d59f155f14b89775eaae))
 - CHANGELOG
+
+### Fixed
+- range error in engine.py ([13a56f](https://github.com/OpenEnergyPlatform/oedialect/commit/13a56f1f575b88732810aca14cfc2b108f57e24a))
+- dependencies ([09b0a3](https://github.com/OpenEnergyPlatform/oedialect/commit/09b0a3adb92e19ae9fd8f421285e09a3cc0d7f7c) and [e2772e](https://github.com/OpenEnergyPlatform/oedialect/commit/e2772e0ea2dd19b2e203209143eb63bad107502f))
 
 ## [0.0.5] 2019-02-08
 
