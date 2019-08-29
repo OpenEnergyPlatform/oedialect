@@ -20,12 +20,17 @@ Here is a template for new release sections
 ```
 ## [Unreleased]
 
+
+## [0.0.7] 2019-08-29
+
+### Added
+- CHANGELOG
+
 ## [0.0.6] 2019-08-29
 
 ### Added
 - test for executemany ([c3b912](https://github.com/OpenEnergyPlatform/oedialect/commit/c3b912abc3764dd0768d07e08945dca1ea21bfbc))
 - handler for time interval([f3f28f](https://github.com/OpenEnergyPlatform/oedialect/commit/f3f28ff0e171fd290da4d59f155f14b89775eaae))
-- CHANGELOG
 
 ### Fixed
 - range error in engine.py ([13a56f](https://github.com/OpenEnergyPlatform/oedialect/commit/13a56f1f575b88732810aca14cfc2b108f57e24a))
