@@ -13,8 +13,14 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url='https://github.com/openego/oedialect',
     packages=setuptools.find_packages(exclude=["test"]),
-    install_requires=['sqlalchemy >= 1.2.0',
-                      'requests >= 2.13'],
+    install_requires=[
+        'sqlalchemy >= 1.2.0',
+        'requests >= 2.13',
+        'psycopg2-binary',
+        'geoalchemy2',
+        'shapely',
+        'python-dateutil'
+    ],
     keywords=['postgres', 'open', 'energy', 'database', 'sql', 'rest'],
     entry_points={
      'sqlalchemy.dialects': [
