@@ -14,5 +14,4 @@ pip install oedialect
 
 ## Tutorials
 
-You can find tutorials and examples [here](https://github
-.com/OpenEnergyPlatform/examples/tree/master/api).
+You can find tutorials and examples [here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).
