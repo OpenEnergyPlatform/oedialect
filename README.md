@@ -12,6 +12,6 @@ This repository is licensed under [GNU Affero General Public License v3.0 (AGPL-
 
 pip install oedialect
 
-## Example
+## Tutorials
 
-You can find a basic example [here](doc/example/oedialect_basic_example.ipynb).
+You can find tutorials and examples [here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).

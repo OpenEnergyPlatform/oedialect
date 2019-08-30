@@ -20,11 +20,14 @@ Here is a template for new release sections
 ```
 ## [Unreleased]
 
-
-## [0.0.7] 2019-08-29
-
 ### Added
 - CHANGELOG
+
+### Changed
+- updated link to the examples/tutorials ([#24](https://github.com/OpenEnergyPlatform/oedialect/pull/24))
+
+### Removed
+- notebook example ([#24](https://github.com/OpenEnergyPlatform/oedialect/pull/24))
 
 ## [0.0.6] 2019-08-29
 
