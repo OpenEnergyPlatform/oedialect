@@ -5,6 +5,7 @@ import requests
 import sqlalchemy
 from dateutil.parser import parse as parse_date
 from shapely import wkb
+from psycopg2.extensions import PYINTERVAL
 
 from oedialect import error
 
@@ -236,7 +237,8 @@ def process_returntype(response, content=None):
     if content is None:
         content = {}
     if 400 <= response.status_code < 500:
-        raise ConnectionException('HTTP %d (%s)'%(response.status_code,response.reason))
+        message = content.get("reason", "")
+        raise ConnectionException('HTTP %d (%s): %s'%(response.status_code,response.reason, message))
     elif 500 <= response.status_code < 600:
         raise ConnectionException('Server side error: ' + content.get('reason', 'No reason returned'))
 
@@ -276,28 +278,39 @@ class OECursor:
     __cell_processors = {
         17: lambda cell: wkb.dumps(wkb.loads(cell, hex=True)),
         1114: lambda cell: parse_date(cell),
-        1082: lambda cell: parse_date(cell).date()
+        1082: lambda cell: parse_date(cell).date(),
+        1186: lambda cell: PYINTERVAL(cell, None)
     }
+
+    def process_result(self,row):
+        for i, x in enumerate(self.description):
+            # Translate WKB-hex to binary representation
+            if row[i]:
+                if x[1] in self.__cell_processors:
+                    row[i] = self.__cell_processors[x[1]](row[i])
+        return row
 
     def fetchone(self):
         response = self.__connection.post('advanced/cursor/fetch_one', {}, cursor_id=self.__id)[
             'content']
         if response:
-            for i, x in enumerate(self.description):
-                # Translate WKB-hex to binary representation
-                if response[i]:
-                    if x[1] in self.__cell_processors:
-                        response[i] = self.__cell_processors[x[1]](response[i])
+            response = self.process_result(response)
         return response
 
     def fetchall(self):
         result = self.__connection.post_expect_stream('advanced/cursor/fetch_all', {}, cursor_id=self.__id)
-        return result
+        if result:
+            for row in result:
+                yield self.process_result(row)
 
     def fetchmany(self, size):
-        response = self.__connection.post('advanced/cursor/fetch_many', {'size': size}, cursor_id=self.__id)[
+        result = self.__connection.post('advanced/cursor/fetch_many', {'size': size}, cursor_id=self.__id)[
             'content']
-        return response
+
+        if result:
+            for row in result:
+                yield self.process_result(row)
+
 
     def execute(self, query_obj, params=None):
         if query_obj is None:
@@ -325,16 +338,13 @@ class OECursor:
                                   requires_connection_id=requires_connection_id)
 
     def executemany(self, query, params=None):
-        print(query)
         if params is None:
             return self.execute(query)
         else:
             if query.isinsert and not (query.isdelete or query.isupdate):
                 return self.execute(query, params)
             else:
-                for p in params:
-                    val = self.execute(query, p)
-                    yield val
+                return [self.execute(query, p) for p in params]
 
     def close(self):
         self.__connection.post('advanced/cursor/close', {}, cursor_id=self.__id)
