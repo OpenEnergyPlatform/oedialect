@@ -20,11 +20,11 @@ Here is a template for new release sections
 ```
 ## [Unreleased]
 
-
-## [0.0.7] 2019-08-29
-
 ### Added
 - CHANGELOG
+
+### Changed
+- psycopg2 instead of psycopg2-binary in the install_require of setup.py [#25](https://github.com/OpenEnergyPlatform/oedialect/pull/25)
 
 ## [0.0.6] 2019-08-29
 
