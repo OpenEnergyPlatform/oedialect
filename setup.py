@@ -16,7 +16,7 @@ setuptools.setup(
     install_requires=[
         'sqlalchemy >= 1.2.0',
         'requests >= 2.13',
-        'psycopg2-binary',
+        'psycopg2 >= 2.8',
         'geoalchemy2',
         'shapely',
         'python-dateutil'
