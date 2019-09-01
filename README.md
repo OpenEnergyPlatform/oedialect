@@ -15,3 +15,14 @@ pip install oedialect
 ## Tutorials
 
 You can find tutorials and examples [here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).
+
+## Testing
+
+To run the tests locally, first install the packages from `test/requirements.txt`
+`pip install -r test/requirements.txt`
+
+Then, copy the file `login.py.default` to `login.py` and update your OEP credentials
+there
+
+Finally, run
+`nosetests test/`
