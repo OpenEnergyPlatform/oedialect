@@ -45,7 +45,7 @@ before_script:
   - psql -U postgres -c "CREATE DATABASE oedb"
   - psql -U postgres -c "CREATE EXTENSION postgis;" oedb
   - psql -U postgres -c "CREATE DATABASE django"
-  - git clone git@github.com:OpenEnergyPlatform/oeplatform.git oep
+  - git clone https://github.com/OpenEnergyPlatform/oeplatform.git oep
   - pip install oep/requirements.txt
   - cp oep/oeplatform/securitysettings.py.default oep/oeplatform/securitysettings.py
   - python oep/manage.py migrate
