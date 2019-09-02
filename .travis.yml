@@ -14,8 +14,8 @@ env:
   global:
     - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
     - SEGFAULT_SIGNALS=all
-    - OEP_DB_USER="postgres" OEP_DB_PW="postgres" OEDB_USER="postgres" OEPB_PW="postgres"
-    - $LOCAL_OEP_USER="user" $LOCAL_OEP_USER="token"
+    - OEP_DB_USER="postgres" OEP_DB_PW="postgres"
+    - LOCAL_OEP_USER="user" $LOCAL_OEP_TOKEN="token"
   matrix:
     - TOXENV=check
     - TOXENV=docs
@@ -44,7 +44,7 @@ before_script:
   - psql -U postgres -c "CREATE EXTENSION postgis;" test
   - psql -U postgres -c "CREATE DATABASE oedb"
   - psql -U postgres -c "CREATE EXTENSION postgis;" oedb
-  - psql -U postgres -c "CREATE DATABASE django"
+  - psql -U postgres -c "CREATE DATABASE oep_django"
   - git clone https://github.com/OpenEnergyPlatform/oeplatform.git oep
   - pip install -r oep/requirements.txt
   - cp oep/oeplatform/securitysettings.py.default oep/oeplatform/securitysettings.py
