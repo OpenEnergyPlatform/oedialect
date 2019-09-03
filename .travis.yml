@@ -46,12 +46,15 @@ before_script:
   - psql -U postgres -c "CREATE EXTENSION postgis;" oedb
   - psql -U postgres -c "CREATE DATABASE oep_django"
   - git clone https://github.com/OpenEnergyPlatform/oeplatform.git oep
-  - pip install -r oep/requirements.txt
-  - cp oep/oeplatform/securitysettings.py.default oep/oeplatform/securitysettings.py
-  - python oep/manage.py migrate
-  - python oep/manage.py alembic upgrade head
-  - python oep/manage.py shell -c "from login.models import myuser, Token; u=myuser.objects.create_user('$LOCAL_OEP_USER','test@test.com','test');t=Token.objects.create(user=u);t.key='$LOCAL_OEP_USER';t.save();u.save()'
-  -
+  - cd oep
+  - pip install -r requirements.txt
+  - cp oeplatform/securitysettings.py.default oeplatform/securitysettings.py
+  - python manage.py migrate
+  - python manage.py alembic upgrade head
+  - python manage.py shell -c "from login.models import myuser, Token; u=myuser.objects.create_user('$LOCAL_OEP_USER','test@test.com','test');t=Token.objects.create(user=u);t.key='$LOCAL_OEP_USER';t.save();u.save()'
+  - python manage.py runserver
+  - cd ..
+
 script:
   - tox -v
 after_failure:
