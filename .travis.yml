@@ -52,7 +52,7 @@ before_script:
   - cp oeplatform/securitysettings.py.default oeplatform/securitysettings.py
   - python manage.py migrate
   - python manage.py alembic upgrade head
-  - python manage.py shell -c "from login.models import myuser, Token; u=myuser.objects.create_user(name='$LOCAL_OEP_USER',email='test@test.com',affiliation='');user.is_mail_verified=True;token = ActivationToken.objects.filter(user=u).first();token.key='$LOCAL_OEP_TOKEN';token.save()"
+  - python manage.py shell -c "from login.models import myuser, Token; u=myuser.objects.create_user(name='$LOCAL_OEP_USER',email='test@test.com',affiliation='');u.is_mail_verified=True;token = ActivationToken.objects.filter(user=u).first();token.key='$LOCAL_OEP_TOKEN';token.save()"
   - python manage.py runserver
   - cd ..
 
