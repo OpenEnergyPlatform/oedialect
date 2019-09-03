@@ -1079,6 +1079,10 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
     def visit_wkb_element(self, element):
         return element.compile()
 
+    def visit_isfalse_unary_operator(self, element, operator, **kw):
+        return {"type": "operator",
+                "operator": "not",
+                "operands": [self.process(element.element, **kw)]}
 
 @compiles(WKBElement)
 def compiles_WKBElement(element, compiler):
