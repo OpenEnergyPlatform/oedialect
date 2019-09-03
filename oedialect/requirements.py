@@ -28,3 +28,7 @@ class Requirements(SuiteRequirements):
     @property
     def broken_cx_oracle6_numerics(self):
         return exclusions.closed()
+
+    @property
+    def cross_schema_fk_reflection(self):
+        return exclusions.closed()
