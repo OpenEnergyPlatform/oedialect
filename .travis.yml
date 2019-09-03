@@ -15,6 +15,7 @@ env:
     - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
     - SEGFAULT_SIGNALS=all
     - OEP_DB_USER="postgres" OEP_DB_PW="postgres"
+    - LOCAL_DB_USER="postgres" LOCAL_DB_PASSWORD="postgres"
     - LOCAL_OEP_USER="user" LOCAL_OEP_TOKEN="token"
   matrix:
     - TOXENV=check
