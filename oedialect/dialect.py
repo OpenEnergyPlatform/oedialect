@@ -9,7 +9,7 @@ import logging
 import warnings
 
 from oedialect import dbapi, compiler as oecomp
-from oedialect.compiler import OEDDLCompiler, OECompiler
+from oedialect.compiler import OEDDLCompiler, OECompiler, OETypeCompiler
 
 logger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
@@ -244,7 +244,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     _supports_create_index_concurrently = False
     _supports_drop_index_concurrently = False
     supports_comments = False
-
+    type_compiler = OETypeCompiler
 
     def __init__(self, *args, **kwargs):
         self._engine = None

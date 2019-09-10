@@ -295,7 +295,10 @@ class OECursor:
                 if x[1] in self.__cell_processors:
                     row[i] = self.__cell_processors[x[1]](row[i])
                 elif x[1] in _DECIMAL_TYPES:
-                    row[i] = Decimal(row[i])
+                    if isinstance(row[i], list):
+                        row[i] = [Decimal(x) for x in row[i]]
+                    else:
+                        row[i] = Decimal(row[i])
 
         return row
 

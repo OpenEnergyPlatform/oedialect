@@ -1,5 +1,5 @@
 from sqlalchemy.dialects.postgresql.base import PGExecutionContext, \
-    PGDDLCompiler
+    PGDDLCompiler, PGTypeCompiler
 from sqlalchemy.sql import crud, selectable, util, elements, compiler, \
     functions, operators, expression
 from sqlalchemy import exc
@@ -229,7 +229,6 @@ class OEDDLCompiler(PGDDLCompiler):
 
     def visit_column_check_constraint(self, constraint):
         raise NotImplementedError
-
 
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
@@ -1081,6 +1080,23 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         return {"type": "operator",
                 "operator": "not",
                 "operands": [self.process(element.element, **kw)]}
+
+
+class OETypeCompiler(PGTypeCompiler):
+    def visit_FLOAT(self, type_, **kw):
+        if type_.asdecimal:
+            d = {
+                'type': 'datatype',
+                'datatype': 'FLOAT',
+                'kwargs': {'asdecimal': True},
+            }
+            if not type_.precision:
+                d["precision"] = type_.precision
+            return d
+        if not type_.precision:
+            return "FLOAT"
+        else:
+            return "FLOAT(%(precision)s)" % {"precision": type_.precision}
 
 @compiles(WKBElement)
 def compiles_WKBElement(element, compiler):
