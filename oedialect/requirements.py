@@ -32,3 +32,15 @@ class Requirements(SuiteRequirements):
     @property
     def cross_schema_fk_reflection(self):
         return exclusions.closed()
+
+    @property
+    def named_constraints(self):
+        return exclusions.closed()
+
+    @property
+    def foreign_key_constraint_reflection(self):
+        return exclusions.closed()
+
+    @property
+    def reflects_pk_names(self):
+        return exclusions.open()

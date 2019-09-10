@@ -6,9 +6,9 @@ import sqlalchemy
 from dateutil.parser import parse as parse_date
 from shapely import wkb
 from psycopg2.extensions import PYINTERVAL
-
+from decimal import Decimal
 from oedialect import error
-
+from sqlalchemy.dialects.postgresql.base import _DECIMAL_TYPES
 
 def date_handler(obj):
     """
@@ -18,6 +18,12 @@ def date_handler(obj):
     """
     if hasattr(obj, 'isoformat'):
         return obj.isoformat()
+    elif isinstance(obj, Decimal):
+        return {
+            'type': 'value',
+            'datatype': 'Decimal',
+            'value': str(obj),
+        }
     else:
         return str(obj)
 
@@ -279,7 +285,7 @@ class OECursor:
         17: lambda cell: wkb.dumps(wkb.loads(cell, hex=True)),
         1114: lambda cell: parse_date(cell),
         1082: lambda cell: parse_date(cell).date(),
-        1186: lambda cell: PYINTERVAL(cell, None)
+        1186: lambda cell: PYINTERVAL(cell, None),
     }
 
     def process_result(self,row):
@@ -288,6 +294,9 @@ class OECursor:
             if row[i]:
                 if x[1] in self.__cell_processors:
                     row[i] = self.__cell_processors[x[1]](row[i])
+                elif x[1] in _DECIMAL_TYPES:
+                    row[i] = Decimal(row[i])
+
         return row
 
     def fetchone(self):

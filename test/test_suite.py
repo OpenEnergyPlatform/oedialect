@@ -18,7 +18,7 @@ from sqlalchemy.testing.suite.test_sequence import (
     SequenceTest,
 )
 from sqlalchemy.testing.suite.test_select import (
-    LimitOffsetTest,
+    # LimitOffsetTest,
     # ExpandingBoundInTest, TODO: Implement expansion
     OrderByLabelTest,
     # LikeFunctionsTest, TODO: Uncomment
@@ -34,7 +34,7 @@ from sqlalchemy.testing.suite.test_results import (
 from sqlalchemy.testing.suite.test_update_delete import SimpleUpdateDeleteTest
 
 from sqlalchemy.testing.suite.test_reflection import (
-    ComponentReflectionTest,
+    #ComponentReflectionTest,
     HasTableTest,
     NormalizedNameTest,
 )
