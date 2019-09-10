@@ -983,8 +983,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             else:
                 jsn['from'] = [f._compiler_dispatch(self, asfrom=True, **kwargs)
                                for f in froms]
-        else:
-            jsn['from'] = self.default_from()
 
         if select._whereclause is not None:
             t = select._whereclause._compiler_dispatch(self, **kwargs)
