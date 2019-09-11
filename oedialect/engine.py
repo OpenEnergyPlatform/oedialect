@@ -23,16 +23,16 @@ def date_handler(obj):
             'datatype': 'time',
             'value': obj.isoformat()
         }
-    if isinstance(obj, datetime.date):
-        return {
-            'type': 'value',
-            'datatype': 'date',
-            'value': obj.isoformat()
-        }
     elif isinstance(obj, datetime.datetime):
         return {
             'type': 'value',
             'datatype': 'datetime',
+            'value': obj.isoformat()
+        }
+    elif isinstance(obj, datetime.date):
+        return {
+            'type': 'value',
+            'datatype': 'date',
             'value': obj.isoformat()
         }
     elif isinstance(obj, Decimal):
