@@ -44,6 +44,10 @@ before_script:
   - psql -U postgres -c 'CREATE DATABASE test;'
   - psql -U postgres -c "CREATE EXTENSION postgis;" test
   - psql -U postgres -c "CREATE DATABASE oedb"
+  - psql -U postgres -c "CREATE SCHEMA sandbox;" oedb
+  - psql -U postgres -c "CREATE SCHEMA _sandbox;" oedb
+  - psql -U postgres -c "CREATE SCHEMA test_schema;" oedb
+  - psql -U postgres -c "CREATE SCHEMA _test_schema;" oedb
   - psql -U postgres -c "CREATE EXTENSION postgis;" oedb
   - psql -U postgres -c "CREATE DATABASE oep_django"
   - git clone https://github.com/OpenEnergyPlatform/oeplatform.git oep
