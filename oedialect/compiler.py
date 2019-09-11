@@ -308,6 +308,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             return "([EXPANDING_%s])" % name
         return lambda d: d[name]
 
+    def render_literal_value(self, value, type_):
+        return value
 
     def visit_insert(self, insert_stmt, **kw):
         self.stack.append(
