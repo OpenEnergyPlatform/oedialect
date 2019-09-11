@@ -7,6 +7,7 @@ from dateutil.parser import parse as parse_date
 from shapely import wkb
 from psycopg2.extensions import PYINTERVAL
 from decimal import Decimal
+import datetime
 from oedialect import error
 from sqlalchemy.dialects.postgresql.base import _DECIMAL_TYPES
 
@@ -16,8 +17,24 @@ def date_handler(obj):
     :param obj: An object
     :return: The str method is called (which is the default serializer for JSON) unless the object has an attribute  *isoformat*
     """
-    if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
+    if isinstance(obj, datetime.time):
+        return {
+            'type': 'value',
+            'datatype': 'time',
+            'value': obj.isoformat()
+        }
+    if isinstance(obj, datetime.date):
+        return {
+            'type': 'value',
+            'datatype': 'date',
+            'value': obj.isoformat()
+        }
+    elif isinstance(obj, datetime.datetime):
+        return {
+            'type': 'value',
+            'datatype': 'datetime',
+            'value': obj.isoformat()
+        }
     elif isinstance(obj, Decimal):
         return {
             'type': 'value',
@@ -285,6 +302,7 @@ class OECursor:
         17: lambda cell: wkb.dumps(wkb.loads(cell, hex=True)),
         1114: lambda cell: parse_date(cell),
         1082: lambda cell: parse_date(cell).date(),
+        1083: lambda cell: parse_date(cell).time(),
         1186: lambda cell: PYINTERVAL(cell, None),
     }
 
