@@ -5,7 +5,7 @@ from sqlalchemy.testing.suite.test_dialect import (
     # EscapingTest, TODO: Uncommment
     # ExceptionTest,
 )
-from sqlalchemy.testing.suite.test_ddl import TableDDLTest
+# from sqlalchemy.testing.suite.test_ddl import TableDDLTest TODO: Uncomment
 
 from sqlalchemy.testing.suite.test_insert import (
     LastrowidTest,
@@ -42,8 +42,8 @@ from sqlalchemy.testing.suite.test_types import (
     UnicodeVarcharTest,
     UnicodeTextTest,
     JSONTest,
-    # DateTest, TODO: Uncomment
-    # DateTimeTest, TODO: Uncomment
+    DateTest,
+    DateTimeTest,
     TextTest,
     NumericTest,
     IntegerTest,
