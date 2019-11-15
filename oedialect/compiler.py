@@ -228,7 +228,15 @@ class OEDDLCompiler(PGDDLCompiler):
     def visit_column_check_constraint(self, constraint):
         raise NotImplementedError
 
-
+    def visit_set_table_comment(self, create):
+        assert isinstance(create.element.comment, dict)
+        jsn = create.element.comment
+        jsn['request_type'] = 'post'
+        jsn['command'] = 'schema/{schema}/tables/{table}/meta/'.format(
+                   schema=create.element.schema if create.element.schema
+                   else DEFAULT_SCHEMA,
+                   table=create.element.name)
+        return jsn
 
 class OECompiler(postgresql.psycopg2.PGCompiler):
     def __str__(self):
