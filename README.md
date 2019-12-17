@@ -18,7 +18,10 @@ This repository is licensed under [GNU Affero General Public License v3.0 (AGPL-
 
 ## Installation
 
-pip install oedialect
+`pip install oedialect`
+
+On MS-Windows make sure to install a version of `shapely` first.
+`conda install shapely -c conda-forge`
 
 ## Example
 
