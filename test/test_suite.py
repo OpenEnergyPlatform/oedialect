@@ -12,13 +12,13 @@ from sqlalchemy.testing.suite.test_insert import (
     InsertBehaviorTest,
     # ReturningTest,
 )
-from sqlalchemy.testing.suite.test_sequence import (
-    HasSequenceTest,
+# from sqlalchemy.testing.suite.test_sequence import (
+    # HasSequenceTest,
     # SequenceCompilerTest, TODO: Uncomment
-    SequenceTest,
-)
+    # SequenceTest,
+# )
 from sqlalchemy.testing.suite.test_select import (
-    # LimitOffsetTest,
+    # LimitOffsetTest, Reason: Contains plain queries
     # ExpandingBoundInTest, TODO: Implement expansion
     OrderByLabelTest,
     # LikeFunctionsTest, TODO: Uncomment
@@ -52,7 +52,7 @@ from sqlalchemy.testing.suite.test_types import (
     TimeMicrosecondsTest,
     TimestampMicrosecondsTest,
     TimeTest,
-    # DateTimeMicrosecondsTest, TODO: Uncomment
+    DateTimeMicrosecondsTest,
     DateHistoricTest,
     StringTest,
     BooleanTest,
