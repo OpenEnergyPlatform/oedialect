@@ -273,6 +273,21 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             raise exc.CompileError(
                 "Unary expression has no operator or modifier")
 
+    def visit_case(self, clause, **kwargs):
+        d = dict(type="case")
+        if clause.value is not None:
+            d["expression"] = clause.value._compiler_dispatch(self, **kwargs)
+        d["cases"] = [
+            dict(when=cond._compiler_dispatch(self, **kwargs),
+                 then=result._compiler_dispatch(self, **kwargs))
+            for cond, result in clause.whens
+        ]
+
+        if clause.else_ is not None:
+            d["else"] = clause.else_._compiler_dispatch(self, **kwargs)
+
+        return d
+
     def visit_grouping(self, grouping, asfrom=False, **kwargs):
         """"
         TODO:

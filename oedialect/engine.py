@@ -282,7 +282,9 @@ class OECursor:
 
 
     def __replace_params(self, jsn, params):
-        if type(jsn) == dict:
+        if jsn is None:
+            return dict(type="value", value=None)
+        elif type(jsn) == dict:
             for k in jsn:
                 jsn[k] = self.__replace_params(jsn[k], params)
             return jsn
