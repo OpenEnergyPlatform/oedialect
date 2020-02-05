@@ -54,6 +54,9 @@ class OEDDLCompiler(PGDDLCompiler):
                 create.element, _include_foreign_key_constraints=  # noqa
                 create.include_foreign_key_constraints)
 
+        if create.element.comment:
+            jsn['metadata'] = create.element.comment
+
         jsn['columns'] = cols
 
         return jsn

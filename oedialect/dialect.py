@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql.base import PGExecutionContext
 
 import shapely
 import geoalchemy2
+import json
 import logging
 import warnings
 
@@ -338,6 +339,18 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         query.update(kw)
         query['command'] = 'advanced/get_table_names'
         return self.execute_with_cursor(connection, query)
+
+    def get_table_comment(self, connection, table_name, schema=None, **kw):
+        query = dict(
+            request_type="get",
+            command="schema/{schema}/tables/{table}/meta/".format(
+                schema=schema if schema else "sandbox",
+                table=table_name
+            )
+        )
+        result=self.execute_with_cursor(connection, query)
+        result = dict(text=json.dumps(result) if result else None)
+        return result
 
     @reflection.cache
     def get_view_names(self, connection, schema=None, **kw):

@@ -210,6 +210,8 @@ class OEConnection():
                 sender = requests.put
             if query['request_type'] == 'delete':
                 sender = requests.delete
+            if query['request_type'] == 'get':
+                sender = requests.get
 
         if 'info_cache' in query:
             del query['info_cache']
@@ -394,6 +396,7 @@ class OECursor:
                         self.description = result['description']
                     if 'rowcount' in result:
                         self.rowcount = result['rowcount']
+                    return result
                 else:
                     return result
             else:
