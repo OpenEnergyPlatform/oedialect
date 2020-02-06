@@ -256,6 +256,10 @@ class OEConnection():
 
         process_returntype(ans, json_response)
 
+        if isinstance(query, dict) and 'request_type' in query:
+            if query['request_type'] == 'get':
+                json_response = dict(content=json_response)
+
         return json_response
 
 def process_returntype(response, content=None):
