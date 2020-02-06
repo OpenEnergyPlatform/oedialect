@@ -11,6 +11,7 @@ from sqlalchemy.sql.compiler import RESERVED_WORDS, LEGAL_CHARACTERS, \
 from sqlalchemy.dialects import postgresql
 from geoalchemy2.elements import WKBElement
 from sqlalchemy.ext.compiler import compiles
+import json
 
 from oedialect import error
 
@@ -55,7 +56,7 @@ class OEDDLCompiler(PGDDLCompiler):
                 create.include_foreign_key_constraints)
 
         if create.element.comment:
-            jsn['metadata'] = create.element.comment
+            jsn['metadata'] = json.loads(create.element.comment)
 
         jsn['columns'] = cols
 
