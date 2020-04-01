@@ -197,7 +197,7 @@ class OEConnection():
         try:
             i = 0
             for line in response.iter_lines():
-                yield json.loads(line.decode('utf8').replace("'", '"'))
+                yield json.loads(line.decode('utf8').replace("'", '\\"'))
         except Exception as e:
             raise
 
