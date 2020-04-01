@@ -21,6 +21,7 @@ setuptools.setup(
         'shapely',
         'python-dateutil'
     ],
+    tests_require=["nose"],
     keywords=['postgres', 'open', 'energy', 'database', 'sql', 'rest'],
     entry_points={
      'sqlalchemy.dialects': [
