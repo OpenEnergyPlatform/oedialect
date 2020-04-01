@@ -12,32 +12,28 @@ import warnings
 from oedialect import dbapi, compiler as oecomp
 from oedialect.compiler import OEDDLCompiler, OECompiler, OETypeCompiler
 
-logger = logging.getLogger('sqlalchemy.dialects.postgresql')
+logger = logging.getLogger("sqlalchemy.dialects.postgresql")
 
 
 class OEExecutionContext(PGExecutionContext):
-
     def fire_sequence(self, sequence, type_):
 
-        seq = {'type': 'sequence', 'sequence': sequence.name}
+        seq = {"type": "sequence", "sequence": sequence.name}
         if sequence.schema is not None:
-            seq['schema'] = sequence.schema
+            seq["schema"] = sequence.schema
 
         query = {
-            'command': 'advanced/search',
-            'type': 'select',
-            'fields': [
-                {'type': 'function',
-                 'function': 'nextval',
-                 'operands': [seq]}
-            ]
+            "command": "advanced/search",
+            "type": "select",
+            "fields": [{"type": "function", "function": "nextval", "operands": [seq]}],
         }
 
         return self._execute_scalar(query, type_)
 
     @classmethod
-    def _init_compiled(cls, dialect, connection, dbapi_connection,
-                       compiled, parameters):
+    def _init_compiled(
+        cls, dialect, connection, dbapi_connection, compiled, parameters
+    ):
         """Initialize execution context for a Compiled construct."""
 
         self = cls.__new__(cls)
@@ -52,16 +48,18 @@ class OEExecutionContext(PGExecutionContext):
         assert compiled.can_execute
 
         self.execution_options = compiled.execution_options.union(
-            connection._execution_options)
+            connection._execution_options
+        )
 
         self.result_column_struct = (
-            compiled._result_columns, compiled._ordered_columns,
-            compiled._textual_ordered_columns)
+            compiled._result_columns,
+            compiled._ordered_columns,
+            compiled._textual_ordered_columns,
+        )
 
         self.unicode_statement = util.text_type(compiled)
         if not dialect.supports_unicode_statements:
-            self.statement = self.unicode_statement.encode(
-                self.dialect.encoding)
+            self.statement = self.unicode_statement.encode(self.dialect.encoding)
         else:
             self.statement = self.unicode_statement
 
@@ -73,9 +71,10 @@ class OEExecutionContext(PGExecutionContext):
         if not parameters:
             self.compiled_parameters = [compiled.construct_params()]
         else:
-            self.compiled_parameters = \
-                [compiled.construct_params(m, _group_number=grp) for
-                 grp, m in enumerate(parameters)]
+            self.compiled_parameters = [
+                compiled.construct_params(m, _group_number=grp)
+                for grp, m in enumerate(parameters)
+            ]
 
             self.executemany = len(parameters) > 1
 
@@ -85,7 +84,8 @@ class OEExecutionContext(PGExecutionContext):
             self.is_crud = True
             self._is_explicit_returning = bool(compiled.statement._returning)
             self._is_implicit_returning = bool(
-                compiled.returning and not compiled.statement._returning)
+                compiled.returning and not compiled.statement._returning
+            )
 
         if self.compiled.insert_prefetch or self.compiled.update_prefetch:
             if self.executemany:
@@ -118,7 +118,7 @@ class OEExecutionContext(PGExecutionContext):
                             dialect._encoder(key)[0],
                             processors[key](compiled_params[key])
                             if key in processors
-                            else compiled_params[key]
+                            else compiled_params[key],
                         )
                         for key in compiled_params
                     )
@@ -128,7 +128,7 @@ class OEExecutionContext(PGExecutionContext):
                             key,
                             processors[key](compiled_params[key])
                             if key in processors
-                            else compiled_params[key]
+                            else compiled_params[key],
                         )
                         for key in compiled_params
                     )
@@ -138,7 +138,6 @@ class OEExecutionContext(PGExecutionContext):
 
         self.statement = compiled
         return self
-
 
     @classmethod
     def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl):
@@ -172,26 +171,22 @@ class OEExecutionContext(PGExecutionContext):
         self.statement = compiled_ddl.string
         return self
 
-
     def get_insert_default(self, column):
-        if column.primary_key and \
-                column is column.table._autoincrement_column:
+        if column.primary_key and column is column.table._autoincrement_column:
             if column.server_default and column.server_default.has_argument:
 
                 exc = {
-                    'command': 'advanced/search',
-                    'type': 'select',
-                    'fields': [column.server_default.arg]
+                    "command": "advanced/search",
+                    "type": "select",
+                    "fields": [column.server_default.arg],
                 }
 
                 # pre-execute passive defaults on primary key columns
-                return self._execute_scalar(exc
-                                            ,
-                                            column.type)
+                return self._execute_scalar(exc, column.type)
 
-            elif (column.default is None or
-                  (column.default.is_sequence and
-                   column.default.optional)):
+            elif column.default is None or (
+                column.default.is_sequence and column.default.optional
+            ):
 
                 # execute the sequence associated with a SERIAL primary
                 # key column. for non-primary-key SERIAL, the ID just
@@ -202,36 +197,31 @@ class OEExecutionContext(PGExecutionContext):
                 except AttributeError:
                     tab = column.table.name
                     col = column.name
-                    tab = tab[0:29 + max(0, (29 - len(col)))]
-                    col = col[0:29 + max(0, (29 - len(tab)))]
+                    tab = tab[0 : 29 + max(0, (29 - len(col)))]
+                    col = col[0 : 29 + max(0, (29 - len(tab)))]
                     name = "%s_%s_seq" % (tab, col)
                     column._postgresql_seq_name = seq_name = name
 
                 if column.table is not None:
-                    effective_schema = self.connection.schema_for_object(
-                        column.table)
+                    effective_schema = self.connection.schema_for_object(column.table)
                 else:
                     effective_schema = None
 
-                seq = {'type':'sequence', 'sequence': seq_name}
+                seq = {"type": "sequence", "sequence": seq_name}
                 if effective_schema is not None:
-                    seq['schema'] = effective_schema
+                    seq["schema"] = effective_schema
 
                 exc = {
-                    'command': 'advanced/search',
-                    'type': 'select',
-                    'fields': [
-                        {'type': 'function',
-                         'function': 'nextval',
-                         'operands': [seq]}
-                    ]
+                    "command": "advanced/search",
+                    "type": "select",
+                    "fields": [
+                        {"type": "function", "function": "nextval", "operands": [seq]}
+                    ],
                 }
-
 
                 return self._execute_scalar(exc, column.type)
 
         return super(PGExecutionContext, self).get_insert_default(column)
-
 
     @property
     def rowcount(self):
@@ -249,20 +239,17 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     def __init__(self, *args, **kwargs):
         self._engine = None
-        self.default_schema_name = 'model_draft'
-        if kwargs.get('json_serializer') is not None:
-            warnings.warn('Use of the keyword \'json_serializer\' is not '
-                          'supported')
-        kwargs['json_serializer'] = lambda x: x
+        self.default_schema_name = "model_draft"
+        if kwargs.get("json_serializer") is not None:
+            warnings.warn("Use of the keyword 'json_serializer' is not " "supported")
+        kwargs["json_serializer"] = lambda x: x
 
-        if kwargs.get('json_deserializer') is not None:
-            warnings.warn('Use of the keyword \'json_serializer\' is not '
-                          'supported')
+        if kwargs.get("json_deserializer") is not None:
+            warnings.warn("Use of the keyword 'json_serializer' is not " "supported")
 
-        kwargs['json_deserializer'] = lambda x: x
+        kwargs["json_deserializer"] = lambda x: x
         super(OEDialect, self).__init__(*args, **kwargs)
         self.dbapi = dbapi
-
 
     """def do_execute(self, cursor, statement, parameters, context=None):
         cursor.execute(context, parameters)"""
@@ -271,7 +258,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         pass
 
     def _check_unicode_description(self, connection):
-        return isinstance('x', sa_util.text_type)
+        return isinstance("x", sa_util.text_type)
 
     def _check_unicode_returns(self, connection, additional_tests=None):
         return True
@@ -293,32 +280,33 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         return None
 
     def has_schema(self, connection, schema):
-        return self.execute_with_cursor(connection,{'command': 'advanced/has_schema',
-                              'schema': schema})
+        return self.execute_with_cursor(
+            connection, {"command": "advanced/has_schema", "schema": schema}
+        )
 
     def has_table(self, connection, table_name, schema=None):
-        query = {'table': table_name}
+        query = {"table": table_name}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
         else:
-            query['schema'] = oecomp.DEFAULT_SCHEMA
+            query["schema"] = oecomp.DEFAULT_SCHEMA
 
-        query['command'] = 'advanced/has_table'
+        query["command"] = "advanced/has_table"
         return self.execute_with_cursor(connection, query)
 
     def has_sequence(self, connection, sequence_name, schema=None):
-        query = {'sequence_name': sequence_name}
+        query = {"sequence_name": sequence_name}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
 
-        query['command'] = 'advanced/has_sequence'
+        query["command"] = "advanced/has_sequence"
         return self.execute_with_cursor(connection, query)
 
     def has_type(self, connection, type_name, schema=None):
-        query = {'type_name': type_name}
+        query = {"type_name": type_name}
         if schema:
-            query['schema'] = schema
-        query['command'] = 'advanced/has_type'
+            query["schema"] = schema
+        query["command"] = "advanced/has_type"
         return self.execute_with_cursor(connection, query)
 
     @reflection.cache
@@ -328,27 +316,26 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     @reflection.cache
     def get_schema_names(self, connection, **kw):
         query = dict(kw)
-        query['command'] = 'advanced/get_schema_names'
+        query["command"] = "advanced/get_schema_names"
         return self.execute_with_cursor(connection, query)
 
     @reflection.cache
     def get_table_names(self, connection, schema=None, **kw):
         query = {}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
         query.update(kw)
-        query['command'] = 'advanced/get_table_names'
+        query["command"] = "advanced/get_table_names"
         return self.execute_with_cursor(connection, query)
 
     def get_table_comment(self, connection, table_name, schema=None, **kw):
         query = dict(
             request_type="get",
             command="schema/{schema}/tables/{table}/meta/".format(
-                schema=schema if schema else "sandbox",
-                table=table_name
-            )
+                schema=schema if schema else "sandbox", table=table_name
+            ),
         )
-        result=self.execute_with_cursor(connection, query)
+        result = self.execute_with_cursor(connection, query)
         result = dict(text=json.dumps(result) if result else None)
         return result
 
@@ -356,133 +343,140 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     def get_view_names(self, connection, schema=None, **kw):
         query = {}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
         query.update(kw)
-        query['command'] = 'advanced/get_view_names'
+        query["command"] = "advanced/get_view_names"
         return self.execute_with_cursor(connection, query)
 
     @reflection.cache
     def get_view_definition(self, connection, view_name, schema=None, **kw):
-        query = {'view_name': view_name}
+        query = {"view_name": view_name}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
         query.update(kw)
-        query['command'] = 'advanced/get_view_definition'
+        query["command"] = "advanced/get_view_definition"
         with connection.connect() as conn:
             return conn.connection.cursor().execute(query)
 
     @reflection.cache
     def get_columns_raw(self, engine, table_name, schema=None, **kw):
-        query = {'table': table_name}
+        query = {"table": table_name}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
 
         # Json does not permit compound dictionary keys.
         # Fortunately, we need just the cached table name.
-        query['info_cache'] = {'+'.join(k[1]): v for k, v in kw['info_cache'].items() if k[0] == 'get_columns_raw'}
-        query['command'] = 'advanced/get_columns'
+        query["info_cache"] = {
+            "+".join(k[1]): v
+            for k, v in kw["info_cache"].items()
+            if k[0] == "get_columns_raw"
+        }
+        query["command"] = "advanced/get_columns"
         with engine.connect() as conn:
-            response = conn.connection.post('advanced/get_columns', query)
+            response = conn.connection.post("advanced/get_columns", query)
 
-            content = response['content']
+            content = response["content"]
         return content
 
     def get_columns(self, engine, table_name, schema=None, **kw):
 
-            content = self.get_columns_raw(engine, table_name, schema, **kw)
-            rows = content['columns']
-            domains = content['domains']
-            enums = content['enums']
+        content = self.get_columns_raw(engine, table_name, schema, **kw)
+        rows = content["columns"]
+        domains = content["domains"]
+        enums = content["enums"]
 
-            columns = []
-            for name, format_type, default, notnull, attnum, table_oid in rows:
-                column_info = self._get_column_info(
-                    name, format_type, default, notnull, domains, enums, schema,
-                    None)
-                columns.append(column_info)
-            return columns
+        columns = []
+        for name, format_type, default, notnull, attnum, table_oid in rows:
+            column_info = self._get_column_info(
+                name, format_type, default, notnull, domains, enums, schema, None
+            )
+            columns.append(column_info)
+        return columns
 
     @reflection.cache
     def get_pk_constraint(self, connection, table_name, schema=None, **kw):
-        query = {'table': str(table_name)}
+        query = {"table": str(table_name)}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
         with connection.connect() as conn:
-            val = conn.connection.post('advanced/get_pk_constraint', query)
-            return val['content']
+            val = conn.connection.post("advanced/get_pk_constraint", query)
+            return val["content"]
 
     @reflection.cache
-    def get_foreign_keys(self, connection, table_name, schema=None,
-                         postgresql_ignore_search_path=False, **kw):
-        query = {'table': table_name}
+    def get_foreign_keys(
+        self,
+        connection,
+        table_name,
+        schema=None,
+        postgresql_ignore_search_path=False,
+        **kw
+    ):
+        query = {"table": table_name}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
         if postgresql_ignore_search_path:
-            query['postgresql_ignore_search_path'] = \
-                postgresql_ignore_search_path
+            query["postgresql_ignore_search_path"] = postgresql_ignore_search_path
         query.update(kw)
-        if 'info_cache' in query:
-            del query['info_cache']
-        query['command'] = 'advanced/get_foreign_keys'
+        if "info_cache" in query:
+            del query["info_cache"]
+        query["command"] = "advanced/get_foreign_keys"
         return self.execute_with_cursor(connection, query)
 
     @reflection.cache
     def get_indexes(self, connection, table_name, schema, **kw):
-        query = {'table': table_name, 'schema': schema}
+        query = {"table": table_name, "schema": schema}
         query.update(kw)
-        query['command'] = 'advanced/get_indexes'
+        query["command"] = "advanced/get_indexes"
         return self.execute_with_cursor(connection, query)
 
     @reflection.cache
-    def get_unique_constraints(self, connection, table_name,
-                               schema=None, **kw):
-        query = {'table': table_name}
+    def get_unique_constraints(self, connection, table_name, schema=None, **kw):
+        query = {"table": table_name}
         if schema:
-            query['schema'] = schema
+            query["schema"] = schema
         query.update(kw)
-        if 'info_cache' in query:
-            del query['info_cache']
+        if "info_cache" in query:
+            del query["info_cache"]
         with connection.connect() as conn:
-            val = conn.connection.post('advanced/get_unique_constraints', query)
-            return val['content']
+            val = conn.connection.post("advanced/get_unique_constraints", query)
+            return val["content"]
 
     def get_isolation_level(self, connection):
-        query= {'command': 'advanced/get_isolation_level'}
+        query = {"command": "advanced/get_isolation_level"}
         cursor = connection.cursor()
         cursor.execute(query)
         cursor.close()
         val = cursor.fetchone()[0]
         return val.upper()
 
-
     def set_isolation_level(self, connection, level):
-        query = {'command': 'advanced/set_isolation_level',
-                 'level': level}
+        query = {"command": "advanced/set_isolation_level", "level": level}
         return self.execute_with_cursor(connection, query)
 
-
     def do_prepare_twophase(self, connection, xid):
-        result = connection.connection.cursor().execute('advanced/do_prepare_twophase', {'xid': xid})
+        result = connection.connection.cursor().execute(
+            "advanced/do_prepare_twophase", {"xid": xid}
+        )
 
+    def do_rollback_twophase(self, connection, xid, is_prepared=True, recover=False):
+        result = connection.connection.post(
+            "advanced/do_rollback_twophase",
+            {"xid": xid, "is_prepared": is_prepared, "recover": recover},
+        )
 
-    def do_rollback_twophase(self, connection, xid,
-                             is_prepared=True, recover=False):
-        result = connection.connection.post('advanced/do_rollback_twophase', {'xid': xid,
-                                               'is_prepared':is_prepared,
-                                               'recover': recover})
-
-    def do_commit_twophase(self, connection, xid,
-                           is_prepared=True, recover=False):
-        result = connection.connection.post('advanced/do_commit_twophase', {'xid': xid,
-                                             'is_prepared': is_prepared,
-                                             'recover': recover})
+    def do_commit_twophase(self, connection, xid, is_prepared=True, recover=False):
+        result = connection.connection.post(
+            "advanced/do_commit_twophase",
+            {"xid": xid, "is_prepared": is_prepared, "recover": recover},
+        )
 
     def do_recover_twophase(self, connection):
-        result = connection.connection.post('advanced/do_recover_twophase', {})
+        result = connection.connection.post("advanced/do_recover_twophase", {})
         return [row[0] for row in result]
 
     def on_connect(self):
         return None
+
 
 # hic sunt dracones
 
@@ -492,9 +486,11 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
 orig_init_WKBElement = geoalchemy2.WKBElement.__init__
 
+
 def init_WKBElement(self, data, *args, **kwargs):
     if isinstance(data, str):
         data = shapely.wkb.dumps(shapely.wkb.loads(data, hex=True))
     orig_init_WKBElement(self, data, *args, **kwargs)
+
 
 geoalchemy2.WKBElement.__init__ = init_WKBElement
