@@ -17,7 +17,7 @@ setuptools.setup(
         'sqlalchemy >= 1.2.0',
         'requests >= 2.13',
         'psycopg2-binary',
-        'geoalchemy2',
+        'geoalchemy2 < 0.7.0',
         'shapely',
         'python-dateutil'
     ],
