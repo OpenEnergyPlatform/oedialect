@@ -405,6 +405,16 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             ]
         }
 
+    def visit_like_op_binary(self, binary, operator, **kw):
+        return {
+            "type": "operator",
+            "operator": "like",
+            "operands": [
+                self.process(binary.left, **kw),
+                self.process(binary.right, **kw),
+            ],
+        }
+
     def visit_slice(self, element, **kw):
         return {
             'type':  'slice',
