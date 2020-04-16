@@ -236,16 +236,20 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
     def visit_clauselist(self, clauselist, **kw):
         sep = clauselist.operator
-        if sep is None:
-            sep = " "
-        else:
-            sep = OPERATORS[clauselist.operator]
-        return [
+        clauses = [
             s for s in
             (
                 c._compiler_dispatch(self, **kw)
                 for c in clauselist.clauses)
             if s]
+
+        if clauselist.operator is not None:
+            sep = OPERATORS[clauselist.operator]
+            clauses = {"type": "operator",
+                "operator": sep,
+                "operands": clauses}
+
+        return clauses
 
     def visit_unary(self, unary, **kw):
         if unary.operator:
