@@ -243,7 +243,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 for c in clauselist.clauses)
             if s]
 
-        if clauselist.operator is not None:
+        if clauselist.operator == operators.and_ or clauselist.operator == operators.or_:
             sep = OPERATORS[clauselist.operator]
             clauses = {"type": "operator",
                 "operator": sep,
