@@ -16,7 +16,16 @@ class ExecuteTest(fixtures.TablesTest):
         engine = config.db
         t = getattr(self.tables, self.table)
         with engine.connect() as connection:
+            data = [dict(value="%dtest"%x) for x in range(10)]
+            connection.execute(insert(t), data)
+            eq_(list(connection.execute(select([t.c.value]).where(t.c.value.like("1%")))),
+                [('1test',)])
+
+    def test_like_empty(self):
+        engine = config.db
+        t = getattr(self.tables, self.table)
+        with engine.connect() as connection:
             data = [dict(value="%d_test"%x) for x in range(10)]
             connection.execute(insert(t), data)
-            eq_(list(connection.execute(select([t.c.value]).where(t.c.value.like("1_%")))),
-                [('1_test',)])
+            eq_(list(connection.execute(select([t.c.value]).where(t.c.value.like("nonexistent%")))),
+                [])
