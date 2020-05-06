@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='oedialect',
-    version='v0.0.8',
+    version='v0.0.9',
     author='MGlauer',
     author_email='martinglauer89@gmail.com',
     description='SQL-Alchemy dialect for the OpenEnergy Platform',
