@@ -9,17 +9,7 @@ from psycopg2.extensions import PYINTERVAL
 
 from oedialect import error
 
-
-def date_handler(obj):
-    """
-    Implements a handler to serialize dates in JSON-strings
-    :param obj: An object
-    :return: The str method is called (which is the default serializer for JSON) unless the object has an attribute  *isoformat*
-    """
-    if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
-    else:
-        return str(obj)
+from oedialect.compiler import OEJSONEncoder
 
 class OEConnection():
     """
@@ -215,13 +205,14 @@ class OEConnection():
         protocol = os.environ.get('OEDIALECT_PROTOCOL', 'https')
         assert protocol in ['http', 'https']
         verify = os.environ.get('OEDIALECT_VERIFY_CERTIFICATE', 'TRUE') == 'TRUE'
+        json.dumps(data, cls=OEJSONEncoder)
         ans = sender(
             '{protocol}://{host}:{port}/api/v0/{suffix}'.format(
                 protocol=protocol,
                 host=host,
                 port=port,
                 suffix=suffix),
-            json=json.loads(json.dumps(data, default=date_handler)),
+            json=json.loads(json.dumps(data, cls=OEJSONEncoder)),
             headers=header, verify=verify)
 
         try:
