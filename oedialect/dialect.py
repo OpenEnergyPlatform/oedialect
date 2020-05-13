@@ -227,6 +227,9 @@ class OEExecutionContext(PGExecutionContext):
     def rowcount(self):
         return self.cursor.rowcount
 
+    def create_server_side_cursor(self):
+        return self._dbapi_connection.cursor()
+
 
 class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     ddl_compiler = OEDDLCompiler

@@ -279,15 +279,20 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
     def visit_clauselist(self, clauselist, **kw):
         sep = clauselist.operator
-        if sep is None:
-            sep = " "
-        else:
+        clauses = [
+            s for s in
+            (
+                c._compiler_dispatch(self, **kw)
+                for c in clauselist.clauses)
+            if s]
+
+        if clauselist.operator == operators.and_ or clauselist.operator == operators.or_:
             sep = OPERATORS[clauselist.operator]
-        return [
-            s
-            for s in (c._compiler_dispatch(self, **kw) for c in clauselist.clauses)
-            if s
-        ]
+            clauses = {"type": "operator",
+                "operator": sep,
+                "operands": clauses}
+
+        return clauses
 
     def visit_unary(self, unary, **kw):
         if unary.operator:
@@ -462,6 +467,16 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         return {
             "type": "operator",
             "operator": "getitem",
+            "operands": [
+                self.process(binary.left, **kw),
+                self.process(binary.right, **kw),
+            ],
+        }
+
+    def visit_like_op_binary(self, binary, operator, **kw):
+        return {
+            "type": "operator",
+            "operator": "like",
             "operands": [
                 self.process(binary.left, **kw),
                 self.process(binary.right, **kw),

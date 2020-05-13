@@ -356,9 +356,7 @@ class OECursor:
                 yield self.process_result(row)
 
     def fetchmany(self, size):
-        result = self.__connection.post(
-            "advanced/cursor/fetch_many", {"size": size}, cursor_id=self.__id
-        )["content"]
+        result = self.__connection.post_expect_stream('advanced/cursor/fetch_many', {'size': size}, cursor_id=self.__id)
 
         if result:
             for row in result:
