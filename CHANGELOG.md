@@ -19,7 +19,7 @@ Here is a template for new release sections
 -
 ```
 
-## [2020-09-24]
+## [0.0.7] 2020-09-24
 
 ### Added
 -
