@@ -385,7 +385,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
             for name, format_type, default, notnull, attnum, table_oid in rows:
                 column_info = self._get_column_info(
                     name, format_type, default, notnull, domains, enums, schema,
-                    None)
+                    None, None) # Usage of 'generated' argument skipped
                 columns.append(column_info)
             return columns
 
