@@ -18,6 +18,22 @@ Here is a template for new release sections
 ### Removed
 -
 ```
+
+## [2020-09-24]
+
+### Added
+-
+### Changed
+- CHANGELOG.md
+- raised the minimum version of sqlalchemy >= 1.3.16
+- dialect.py, Ignores the "generated" argument in _get_column_info()
+
+### Fixed
+- Fixes (#35)
+
+### Removed
+-
+
 ## [Unreleased]
 
 ### Added
@@ -58,4 +74,3 @@ Update version number
 ## [0.0.1] 2018-08-08
 
 First alpha release
-
