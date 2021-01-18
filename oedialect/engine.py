@@ -25,11 +25,7 @@ def date_handler(obj):
     elif isinstance(obj, datetime.date):
         return {"type": "value", "datatype": "date", "value": obj.isoformat()}
     elif isinstance(obj, Decimal):
-        return {
-            "type": "value",
-            "datatype": "Decimal",
-            "value": str(obj),
-        }
+        return {"type": "value", "datatype": "Decimal", "value": str(obj)}
     else:
         return str(obj)
 
@@ -356,7 +352,9 @@ class OECursor:
                 yield self.process_result(row)
 
     def fetchmany(self, size):
-        result = self.__connection.post_expect_stream('advanced/cursor/fetch_many', {'size': size}, cursor_id=self.__id)
+        result = self.__connection.post_expect_stream(
+            "advanced/cursor/fetch_many", {"size": size}, cursor_id=self.__id
+        )
 
         if result:
             for row in result:

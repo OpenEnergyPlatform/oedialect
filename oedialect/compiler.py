@@ -280,17 +280,17 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
     def visit_clauselist(self, clauselist, **kw):
         sep = clauselist.operator
         clauses = [
-            s for s in
-            (
-                c._compiler_dispatch(self, **kw)
-                for c in clauselist.clauses)
-            if s]
+            s
+            for s in (c._compiler_dispatch(self, **kw) for c in clauselist.clauses)
+            if s
+        ]
 
-        if clauselist.operator == operators.and_ or clauselist.operator == operators.or_:
+        if (
+            clauselist.operator == operators.and_
+            or clauselist.operator == operators.or_
+        ):
             sep = OPERATORS[clauselist.operator]
-            clauses = {"type": "operator",
-                "operator": sep,
-                "operands": clauses}
+            clauses = {"type": "operator", "operator": sep, "operands": clauses}
 
         return clauses
 
@@ -900,7 +900,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 add_to_result_map(
                     labelname,
                     label.name,
-                    (label, labelname,) + label._alt_names,
+                    (label, labelname) + label._alt_names,
                     label.type,
                 )
 
@@ -1186,11 +1186,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 class OETypeCompiler(PGTypeCompiler):
     def visit_FLOAT(self, type_, **kw):
         if type_.asdecimal:
-            d = {
-                "type": "datatype",
-                "datatype": "FLOAT",
-                "kwargs": {"asdecimal": True},
-            }
+            d = {"type": "datatype", "datatype": "FLOAT", "kwargs": {"asdecimal": True}}
             if not type_.precision:
                 d["precision"] = type_.precision
             return d
