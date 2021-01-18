@@ -337,7 +337,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         return d
 
     def visit_grouping(self, grouping, asfrom=False, **kwargs):
-        """"
+        """ "
         TODO:
         """
         return {
@@ -1011,8 +1011,10 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         if column.type._has_column_expression and populate_result_map:
             col_expr = column.type.column_expression(column)
-            add_to_result_map = lambda keyname, name, objects, type_: self._add_to_result_map(
-                keyname, name, (column,) + objects, type_
+            add_to_result_map = (
+                lambda keyname, name, objects, type_: self._add_to_result_map(
+                    keyname, name, (column,) + objects, type_
+                )
             )
         else:
             col_expr = column

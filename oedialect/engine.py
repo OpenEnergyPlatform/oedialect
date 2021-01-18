@@ -31,9 +31,7 @@ def date_handler(obj):
 
 
 class OEConnection:
-    """
-
-    """
+    """"""
 
     """
         Connection methods
