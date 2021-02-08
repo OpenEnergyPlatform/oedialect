@@ -4,13 +4,10 @@ from sqlalchemy import Column, INTEGER, Table
 
 class TableCommentTest(fixtures.TablesTest):
     table_comment = """{"id":"test"}"""
-    expected_result= ('{"name": null, "title": null, "id": "test", "description": null, "language": '
- 'null, "keywords": null, "publicationDate": null, "context": null, "spatial": '
- 'null, "temporal": null, "sources": null, "licenses": null, "contributors": '
- 'null, "resources": null, "review": null, "metaMetadata": {"metadataVersion": '
- '"OEP-1.4.0", "metadataLicense": {"name": "CC0-1.0", "title": "Creative '
- 'Commons Zero v1.0 Universal", "path": '
- '"https://creativecommons.org/publicdomain/zero/1.0/"}}, "_comment": null}')
+    expected_result= ('{"id": "test", "metaMetadata": {"metadataVersion": "OEP-1.4.0", '
+ '"metadataLicense": {"name": "CC0-1.0", "title": "Creative Commons Zero v1.0 '
+ 'Universal", "path": "https://creativecommons.org/publicdomain/zero/1.0/"}}}')
+
     @classmethod
     def define_tables(cls, metadata):
         Table("table", metadata,

@@ -11,8 +11,8 @@ class TableCommentTest(fixtures.TablesTest):
               )
 
     @classmethod
-    def insert_data(cls):
-        config.db.execute(
+    def insert_data(cls, connection):
+        connection.execute(
             cls.tables.table.insert(),
             [
                 {'id': x} for x in range(10)
