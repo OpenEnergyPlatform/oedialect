@@ -19,7 +19,6 @@ env:
     - LOCAL_OEP_USER="user" LOCAL_OEP_TOKEN="token"
   matrix:
     - TOXENV=check
-    - TOXENV=docs
 matrix:
   include:
     - python: '3.6'
