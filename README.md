@@ -23,6 +23,6 @@ This repository is licensed under [GNU Affero General Public License v3.0 (AGPL-
 On MS-Windows make sure to install a version of `shapely` first.
 `conda install shapely -c conda-forge`
 
-## Example
+## Tutorials
 
-You can find a basic example [here](doc/example/oedialect_basic_example.ipynb).
+You can find tutorials and examples [here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).

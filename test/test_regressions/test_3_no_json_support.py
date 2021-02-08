@@ -14,8 +14,8 @@ class CollateTest(fixtures.TablesTest):
               )
 
     @classmethod
-    def insert_data(cls):
-        config.db.execute(
+    def insert_data(cls, connection):
+        connection.execute(
             cls.tables.json_table.insert(),
             [
                 {'meta': {
