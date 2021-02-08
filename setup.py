@@ -14,7 +14,7 @@ setuptools.setup(
     url='https://github.com/openego/oedialect',
     packages=setuptools.find_packages(exclude=["test"]),
     install_requires=[
-        'sqlalchemy >= 1.2.0',
+        'sqlalchemy >= 1.3.16',
         'requests >= 2.13',
         'psycopg2-binary',
         'geoalchemy2 < 0.7.0',
