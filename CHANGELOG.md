@@ -6,18 +6,13 @@ and the versiong aim to respect [Semantic Versioning](http://semver.org/spec/v2.
 
 Here is a template for new release sections
 
-```
-## [_._._] - 20XX-MM-DD
+## [0.0.10] 2021-01-08
 
 ### Added
--
+- Fixed CI integration
+
 ### Changed
--
-### Fixed
--
-### Removed
--
-```
+- Adapted to modern SQLAlchemy
 
 ## [0.0.7] 2020-09-24
 
