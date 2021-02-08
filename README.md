@@ -26,3 +26,17 @@ On MS-Windows make sure to install a version of `shapely` first.
 ## Tutorials
 
 You can find tutorials and examples [here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).
+
+
+## Testing
+
+To run the tests locally, first install the `tox` test environment
+`pip install tox`
+
+You need to setup a local instance of the [Open Energy Platform](https://github.com/OpenEnergyPlatform/oeplatform)
+
+Set your connection token that you got from your local OEP instance
+`LOCAL_OEP_TOKEN=<your_token>`
+
+Finally, run
+`tox`
