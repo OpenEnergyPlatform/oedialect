@@ -21,7 +21,7 @@ setuptools.setup(
         'shapely',
         'python-dateutil'
     ],
-    tests_require=['black', 'tox', 'pytest==5.3', 'pandas', 'sqlahelper', 'geojson'],
+    extras_require={'tests': ['black', 'tox', 'pytest==5.3', 'pandas', 'sqlahelper', 'geojson']},
     keywords=['postgres', 'open', 'energy', 'database', 'sql', 'rest'],
     entry_points={
      'sqlalchemy.dialects': [
