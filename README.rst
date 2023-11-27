@@ -22,17 +22,17 @@ Oedialect
    * - Community
      - |badge_contributing| |badge_contributors| |badge_repo_counts|
 
-.. contents::
-    :depth: 2
-    :local:
-    :backlinks: top
-
  image:: https://avatars2.githubusercontent.com/u/37101913?s=400&u=9b593cfdb6048a05ea6e72d333169a65e7c922be&v=4
    :align: right
    :width: 200
    :height: 200
    :alt: OpenEnergyPlatform
    :target: http://oep.iks.cs.ovgu.de/
+
+.. contents::
+    :depth: 2
+    :local:
+    :backlinks: top
 
 An `SQLAlchemy <https://www.sqlalchemy.org/>`_ `Dialect <https://docs.sqlalchemy.org/en/13/dialects/>`_ for the `OEP <https://github.com/OpenEnergyPlatform/oeplatform>`_
 ======================================================================================================================
