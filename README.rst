@@ -5,10 +5,8 @@
     :alt: Repo logo
 
 ==========
-super-repo
+Oedialect
 ==========
-
-**A template repo to test and document elements and features for research software.**
 
 .. list-table::
    :widths: auto
@@ -18,7 +16,7 @@ super-repo
    * - Documentation
      - |badge_documentation|
    * - Publication
-     - 
+     -
    * - Development
      - |badge_issue_open| |badge_issue_closes| |badge_pr_open| |badge_pr_closes|
    * - Community
@@ -76,3 +74,33 @@ Set your connection token that you got from your local OEP instance
 
 Finally, run
 ``tox``
+
+
+.. |badge_license| image:: https://img.shields.io/github/license/OpenEnergyPlatform/oedialect
+    :target: LICENSE.txt
+    :alt: License
+
+.. |badge_documentation| image::
+    :target:
+    :alt: Documentation
+
+.. |badge_contributing| image:: https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat
+    :alt: contributions
+
+.. |badge_repo_counts| image:: http://hits.dwyl.com/OpenEnergyPlatform/oedialect.svg
+    :alt: counter
+
+.. |badge_contributors| image:: https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square
+    :alt: contributors
+
+.. |badge_issue_open| image:: https://img.shields.io/github/issues-raw/OpenEnergyPlatform/oedialect
+    :alt: open issues
+
+.. |badge_issue_closes| image:: https://img.shields.io/github/issues-closed-raw/OpenEnergyPlatform/oedialect
+    :alt: closes issues
+
+.. |badge_pr_open| image:: https://img.shields.io/github/issues-pr-raw/OpenEnergyPlatform/oedialect
+    :alt: closes issues
+
+.. |badge_pr_closes| image:: https://img.shields.io/github/issues-pr-closed-raw/OpenEnergyPlatform/oedialect
+    :alt: closes issues
