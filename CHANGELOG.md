@@ -40,13 +40,31 @@ You can copy this section if you want to create a new release version and insert
 
 ### Fixed
 
-- The host URL for openenergyplatform.org has been corrected to prevent the request headers from being lost in an http-post request. Also introduced a new settings.py module for storing frequently used variables [](https://github.com/OpenEnergyPlatform/oedialect/pull/)
+-
+
+### Documentation & GitHub Actions
+
+-
+
+Releases:
+
+## [0.1.0] 2024-04-15
+
+### Added
+
+-
+
+### Changed
+
+-
+
+### Fixed
+
+- The host URL for openenergyplatform.org has been corrected to prevent the request headers from being lost in an http-post request. Also introduced a new settings.py module for storing frequently used variables [#49](https://github.com/OpenEnergyPlatform/oedialect/pull/49)
 
 ### Documentation & GitHub Actions
 
 - Add new GitHub workflows to automatically publish a pip package on GitHub release
-
-Releases:
 
 ## [0.0.10] 2021-01-08
 
