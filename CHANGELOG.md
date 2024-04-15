@@ -48,6 +48,24 @@ You can copy this section if you want to create a new release version and insert
 
 Releases:
 
+## [0.1.1] 2024-04-15
+
+### Added
+
+-
+
+### Changed
+
+-
+
+### Fixed
+
+-
+
+### Documentation & GitHub Actions
+
+- Update GitHub pypi publish workflow
+
 ## [0.1.0] 2024-04-15
 
 ### Added
