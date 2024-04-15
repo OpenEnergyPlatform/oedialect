@@ -36,7 +36,7 @@ You can copy this section if you want to create a new release version and insert
 
 ### Fixed
 
-- Fixed the host URL for openenergyplatform.org to avoid losing request headers in case a http-post request is send [](https://github.com/OpenEnergyPlatform/oedialect/pull/)
+- The host URL for openenergyplatform.org has been corrected to prevent the request headers from being lost in an http-post request. Also introduced a new settings.py module for storing frequently used variables [](https://github.com/OpenEnergyPlatform/oedialect/pull/)
 
 Releases:
 
