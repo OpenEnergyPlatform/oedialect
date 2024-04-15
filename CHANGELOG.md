@@ -21,6 +21,10 @@ Here is a template for new release sections
 
 - Fixed a bug [#REPLACE-GITHUB-PR-NUMBER](https://github.com/OpenEnergyPlatform/oedialect/pull/_REPLACE-GITHUB-PR-NUMBER_)
 
+### Documentation & GitHub Actions
+
+- Updated the documentation
+
 Current development:
 You can copy this section if you want to create a new release version and insert it below.
 
@@ -37,6 +41,10 @@ You can copy this section if you want to create a new release version and insert
 ### Fixed
 
 - The host URL for openenergyplatform.org has been corrected to prevent the request headers from being lost in an http-post request. Also introduced a new settings.py module for storing frequently used variables [](https://github.com/OpenEnergyPlatform/oedialect/pull/)
+
+### Documentation & GitHub Actions
+
+- Add new GitHub workflows to automatically publish a pip package on GitHub release
 
 Releases:
 
