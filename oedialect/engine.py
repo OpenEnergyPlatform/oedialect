@@ -11,6 +11,8 @@ import datetime
 from oedialect import error
 from sqlalchemy.dialects.postgresql.base import _DECIMAL_TYPES
 
+from oedialect.settings import OEP_URL, LOCAL_OEP_URL
+
 
 def date_handler(obj):
     """
@@ -37,7 +39,7 @@ class OEConnection:
         Connection methods
     """
 
-    def __init__(self, host="localhost", port=80, user="", database="", password=""):
+    def __init__(self, host=LOCAL_OEP_URL, port=80, user="", database="", password=""):
         self.__host = host
         self.__port = port
         self.__user = user
@@ -162,8 +164,9 @@ class OEConnection:
             "oep.iws.cs.ovgu.de",
             "oep2.iws.cs.ovgu.de",
             "openenergyplatform.org",
+            "openenergy-platform.org",
         ]:
-            host = "openenergy-platform.org"
+            host = OEP_URL
 
         port = self.__port if self.__port != 80 else 443
 
@@ -223,8 +226,9 @@ class OEConnection:
             "oep.iws.cs.ovgu.de",
             "oep2.iws.cs.ovgu.de",
             "openenergyplatform.org",
+            "openenergy-platform.org",
         ]:
-            host = "openenergy-platform.org"
+            host = OEP_URL
 
         port = self.__port if self.__port != 80 else 443
 
