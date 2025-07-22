@@ -1,4 +1,4 @@
-from sqlalchemy import INTEGER, JSON, Column, Table, select, testing
+from sqlalchemy import INTEGER, JSON, Column, Table, select
 from sqlalchemy.testing import config, fixtures
 from sqlalchemy.testing.assertions import eq_
 
@@ -18,7 +18,8 @@ class CollateTest(fixtures.TablesTest):
     @classmethod
     def insert_data(cls, connection):
         connection.execute(
-            cls.tables.json_table.insert(), [{"meta": {"a": "test", "b": "test2"}}]
+            cls.tables.json_table.insert(),  # type:ignore
+            [{"meta": {"a": "test", "b": "test2"}}],
         )
 
     def _assert_result(self, select, result):
@@ -26,5 +27,8 @@ class CollateTest(fixtures.TablesTest):
 
     def test_issue_3(self):
         self._assert_result(
-            select([self.tables.json_table]), [(1, {"b": "test2", "a": "test"})]
+            select(
+                [self.tables.json_table]  # type:ignore
+            ),
+            [(1, {"b": "test2", "a": "test"})],
         )

@@ -1,4 +1,4 @@
-from sqlalchemy import INTEGER, JSON, TEXT, Column, Table, insert, select, testing
+from sqlalchemy import INTEGER, TEXT, Column, Table, insert, select
 from sqlalchemy.testing import config, fixtures
 from sqlalchemy.testing.assertions import eq_
 

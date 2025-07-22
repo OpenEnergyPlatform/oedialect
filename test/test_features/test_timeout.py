@@ -12,18 +12,20 @@ class TableCommentTest(fixtures.TablesTest):
 
     @classmethod
     def insert_data(cls, connection):
-        connection.execute(cls.tables.table.insert(), [{"id": x} for x in range(10)])
+        connection.execute(
+            cls.tables.table.insert(), [{"id": x} for x in range(10)]  # type: ignore
+        )
 
     def test_timeout_without_cursor(self):
         conn1 = config.db.engine.connect()
         time.sleep(4)
-        conn2 = config.db.engine.connect()  #
-        conn1.execute(self.tables.table.select())
+        conn2 = config.db.engine.connect()  # noqa: why do we need it?
+        conn1.execute(self.tables.table.select())  # type: ignore
         conn1.close()
 
     def test_timeout_with_cursor(self):
         conn1 = config.db.engine.connect()
-        res = conn1.execute(self.tables.table.select())
+        res = conn1.execute(self.tables.table.select())  # type: ignore
         for row, expected in zip(res, range(10)):
             eq_(row.id, expected)
             time.sleep(4)
@@ -36,8 +38,8 @@ class TableCommentTest(fixtures.TablesTest):
         limit = 2
         conns = [config.db.engine.connect() for x in range(limit)]
         try:
-            conn_too_much = config.db.engine.connect()
-        except ConnectionError as e:
+            conn_too_much = config.db.engine.connect()  # noqa
+        except ConnectionError:
             raise
         for conn in conns:
             conn.close()
