@@ -1,1 +1,2 @@
-secret_key = ''
+OED_CREDS = "USER:TOKEN"
+# DB_CREDS = "USER:PASSWORD"
