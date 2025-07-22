@@ -1,31 +1,25 @@
-from sqlalchemy.testing import fixtures, config, eq_
-from sqlalchemy import Column, INTEGER, Table
 import time
+
+from sqlalchemy import INTEGER, Column, Table
+from sqlalchemy.testing import config, eq_, fixtures
+
 
 class TableCommentTest(fixtures.TablesTest):
 
     @classmethod
     def define_tables(cls, metadata):
-        Table("table", metadata,
-              Column('id', INTEGER, primary_key=True)
-              )
+        Table("table", metadata, Column("id", INTEGER, primary_key=True))
 
     @classmethod
     def insert_data(cls, connection):
-        connection.execute(
-            cls.tables.table.insert(),
-            [
-                {'id': x} for x in range(10)
-            ]
-        )
+        connection.execute(cls.tables.table.insert(), [{"id": x} for x in range(10)])
 
     def test_timeout_without_cursor(self):
         conn1 = config.db.engine.connect()
         time.sleep(4)
-        conn2 = config.db.engine.connect()#
+        conn2 = config.db.engine.connect()  #
         conn1.execute(self.tables.table.select())
         conn1.close()
-
 
     def test_timeout_with_cursor(self):
         conn1 = config.db.engine.connect()
