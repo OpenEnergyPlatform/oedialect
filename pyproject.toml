@@ -1,14 +1,36 @@
 [project]
 name = "oedialect"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "geoalchemy2<0.7.0",
-    "psycopg2-binary>=2.9.10",
-    "python-dateutil>=2.9.0.post0",
-    "requests>=2.13",
-    "shapely>=2.0.6",
-    "sqlalchemy>=1.3.16",
+authors = [
+    {name = "MGlauer", email = "martinglauer89@gmail.com"}
 ]
+urls = {Homepage = "https://github.com/openego/oedialect"}
+description = "SQL-Alchemy dialect for the OpenEnergy Platform"
+
+readme = "README.md"
+
+# NOTE: the old tests only work in 3.9
+requires-python = "~=3.9"
+
+keywords = ["postgres", "open", "energy", "database", "sql", "rest"]
+dependencies = [
+    "GeoAlchemy2==0.11.1",
+    "psycopg2-binary==2.9.9",
+    "python-dateutil",
+    "requests==2.32.4",
+    "Shapely==1.8.5.post1",
+    "SQLAlchemy==1.3.24"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==5.3",
+  "tox"
+]
+
+[tool.tox]
+envlist = ["py39"]
+
+[tool.tox.testenv]
+deps = ["pytest"]
+commands = ["pytest"]
