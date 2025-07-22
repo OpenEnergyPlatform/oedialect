@@ -24,7 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest==5.3",
+  "pytest<5.4",
   "tox"
 ]
 
