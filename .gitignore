@@ -84,7 +84,7 @@ venv*/
 
 # Deployment files
 docker/oeplatform_data
-
+uv.lock
 **/node_modules
 oep-website/oeo_viewer/client/node_modules
 
