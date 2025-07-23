@@ -1,4 +1,6 @@
-# test/test_suite.py
+"""Import tests from internal test suite to run against custom dialect.
+needs conftest.py (?)
+"""
 
 from sqlalchemy.testing.suite.test_dialect import AutocommitTest  # noqa
 from sqlalchemy.testing.suite.test_insert import InsertBehaviorTest  # noqa
