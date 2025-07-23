@@ -4,9 +4,9 @@
 
 SQLAlchemy internally uses so called "dialects" to provide a consistent
 interface to different database drivers. The `oedialect` supplies your
-SQLAlchemy installation with a dialect using the REST-API of the [Open
-Energy Platform (OEP)][2]. In short, the `oedialect` allows you to use
-SQLAlchemy to down- and upload data to an OEP instance.
+SQLAlchemy installation with a dialect using the REST-API of the [Open Energy
+Platform (OEP)][2]. In short, the `oedialect` allows you to use SQLAlchemy to
+down- and upload data to an OEP instance.
 
 [0]: https://www.sqlalchemy.org/
 [1]: https://docs.sqlalchemy.org/en/13/dialects/
@@ -14,7 +14,8 @@ SQLAlchemy to down- and upload data to an OEP instance.
 
 ## License / Copyright
 
-This repository is licensed under [GNU Affero General Public License v3.0 (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+This repository is licensed under
+[GNU Affero General Public License v3.0 (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.en.html)
 
 ## Installation
 
@@ -25,18 +26,18 @@ On MS-Windows make sure to install a version of `shapely` first.
 
 ## Tutorials
 
-You can find tutorials and examples [here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).
-
+You can find tutorials and examples
+[here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).
 
 ## Testing
 
 To run the tests locally, first install the `tox` test environment
 `pip install tox`
 
-You need to setup a local instance of the [Open Energy Platform](https://github.com/OpenEnergyPlatform/oeplatform)
+You need to setup a local instance of the
+[Open Energy Platform](https://github.com/OpenEnergyPlatform/oeplatform)
 
 Set your connection token that you got from your local OEP instance
 `LOCAL_OEP_TOKEN=<your_token>`
 
-Finally, run
-`tox`
+Finally, run `tox`
