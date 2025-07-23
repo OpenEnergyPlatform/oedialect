@@ -21,23 +21,19 @@ This repository is licensed under
 
 `pip install oedialect`
 
-On MS-Windows make sure to install a version of `shapely` first.
-`conda install shapely -c conda-forge`
-
 ## Tutorials
 
 You can find tutorials and examples
-[here](https://github.com/OpenEnergyPlatform/examples/tree/master/api).
+[here](https://openenergyplatform.github.io/academy/tutorials/).
 
 ## Testing
-
-To run the tests locally, first install the `tox` test environment
-`pip install tox`
 
 You need to setup a local instance of the
 [Open Energy Platform](https://github.com/OpenEnergyPlatform/oeplatform)
 
-Set your connection token that you got from your local OEP instance
-`LOCAL_OEP_TOKEN=<your_token>`
+Finally, run pytest:
 
-Finally, run `tox`
+```bash
+# with local oep, you probably need to set OEDIALECT_PROTOCOL=http
+pytest --dburi=postgresql+oedialect://:<LOCAL_OEP_TOKEN>@localhost:8000
+```
