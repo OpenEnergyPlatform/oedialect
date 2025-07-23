@@ -1,36 +1,37 @@
+import json
+
+from geoalchemy2.elements import WKBElement
+from sqlalchemy import exc
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql.base import (
-    PGExecutionContext,
     PGDDLCompiler,
+    PGExecutionContext,
     PGTypeCompiler,
 )
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import (
-    crud,
-    selectable,
-    util,
-    elements,
     compiler,
+    crud,
+    elements,
+    expression,
     functions,
     operators,
-    expression,
+    selectable,
+    util,
 )
-from sqlalchemy import exc
 from sqlalchemy.sql.annotation import Annotated
 from sqlalchemy.sql.compiler import (
-    RESERVED_WORDS,
-    LEGAL_CHARACTERS,
-    ILLEGAL_INITIAL_CHARACTERS,
     BIND_PARAMS,
     BIND_PARAMS_ESC,
-    OPERATORS,
     BIND_TEMPLATES,
-    FUNCTIONS,
-    EXTRACT_MAP,
     COMPOUND_KEYWORDS,
+    EXTRACT_MAP,
+    FUNCTIONS,
+    ILLEGAL_INITIAL_CHARACTERS,
+    LEGAL_CHARACTERS,
+    OPERATORS,
+    RESERVED_WORDS,
 )
-from sqlalchemy.dialects import postgresql
-from geoalchemy2.elements import WKBElement
-from sqlalchemy.ext.compiler import compiles
-import json
 
 from oedialect import error
 
@@ -45,9 +46,9 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn = {
             "request_type": "put",
             "command": "schema/{schema}/tables/{table}/".format(
-                schema=create.element.schema
-                if create.element.schema
-                else DEFAULT_SCHEMA,
+                schema=(
+                    create.element.schema if create.element.schema else DEFAULT_SCHEMA
+                ),
                 table=create.element.name,
             ),
         }
@@ -130,9 +131,9 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn = {
             "request_type": "put",
             "command": "schema/{schema}/sequences/{seq}/".format(
-                schema=create.element.schema
-                if create.element.schema
-                else DEFAULT_SCHEMA,
+                schema=(
+                    create.element.schema if create.element.schema else DEFAULT_SCHEMA
+                ),
                 seq=create.element.name,
             ),
             "requires_connection": True,
@@ -607,7 +608,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         compound_index=0,
         nested_join_translation=False,
         select_wraps_for=None,
-        **kwargs
+        **kwargs,
     ):
         jsn = {"command": "advanced/search", "type": "select"}
         needs_nested_translation = (
@@ -626,7 +627,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 fromhints=fromhints,
                 compound_index=compound_index,
                 nested_join_translation=True,
-                **kwargs
+                **kwargs,
             )
 
         toplevel = not self.stack
@@ -879,7 +880,7 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         within_label_clause=False,
         within_columns_clause=False,
         render_label_as_label=None,
-        **kw
+        **kw,
     ):
         # only render labels within the columns clause
         # or ORDER BY clause of a select.  dialect-specific compilers

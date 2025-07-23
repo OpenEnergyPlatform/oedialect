@@ -1,16 +1,17 @@
-from sqlalchemy.dialects import postgresql
-from sqlalchemy import util
-from sqlalchemy.engine import reflection
-from sqlalchemy.dialects.postgresql.base import PGExecutionContext
-
-import shapely
-import geoalchemy2
 import json
 import logging
 import warnings
 
-from oedialect import dbapi, compiler as oecomp
-from oedialect.compiler import OEDDLCompiler, OECompiler, OETypeCompiler
+import geoalchemy2
+import shapely
+from sqlalchemy import util
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql.base import PGExecutionContext
+from sqlalchemy.engine import reflection
+
+from oedialect import compiler as oecomp
+from oedialect import dbapi
+from oedialect.compiler import OECompiler, OEDDLCompiler, OETypeCompiler
 
 logger = logging.getLogger("sqlalchemy.dialects.postgresql")
 
@@ -116,9 +117,11 @@ class OEExecutionContext(PGExecutionContext):
                     param = dict(
                         (
                             dialect._encoder(key)[0],
-                            processors[key](compiled_params[key])
-                            if key in processors
-                            else compiled_params[key],
+                            (
+                                processors[key](compiled_params[key])
+                                if key in processors
+                                else compiled_params[key]
+                            ),
                         )
                         for key in compiled_params
                     )
@@ -126,9 +129,11 @@ class OEExecutionContext(PGExecutionContext):
                     param = dict(
                         (
                             key,
-                            processors[key](compiled_params[key])
-                            if key in processors
-                            else compiled_params[key],
+                            (
+                                processors[key](compiled_params[key])
+                                if key in processors
+                                else compiled_params[key]
+                            ),
                         )
                         for key in compiled_params
                     )
@@ -412,7 +417,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         table_name,
         schema=None,
         postgresql_ignore_search_path=False,
-        **kw
+        **kw,
     ):
         query = {"table": table_name}
         if schema:

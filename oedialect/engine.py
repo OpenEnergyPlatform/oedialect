@@ -1,17 +1,17 @@
+import datetime
 import json
-
 import os
+from decimal import Decimal
+
 import requests
 import sqlalchemy
 from dateutil.parser import parse as parse_date
-from shapely import wkb
 from psycopg2.extensions import PYINTERVAL
-from decimal import Decimal
-import datetime
-from oedialect import error
+from shapely import wkb
 from sqlalchemy.dialects.postgresql.base import _DECIMAL_TYPES
 
-from oedialect.settings import OEP_URL, LOCAL_OEP_URL
+from oedialect import error
+from oedialect.settings import LOCAL_OEP_URL, OEP_URL
 
 
 def date_handler(obj):
