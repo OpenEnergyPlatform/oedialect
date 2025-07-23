@@ -3,8 +3,7 @@
 # from test.login import DB_CREDS
 from test.login import OED_CREDS
 
-from sqlalchemy import INTEGER, VARCHAR, Column, MetaData, Table, create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import INTEGER, VARCHAR, Column, MetaData, Table, create_engine, select
 
 import oedialect  # noqa
 
@@ -16,7 +15,7 @@ DB_STRING = "postgresql+oedialect://{creds}@localhost:8000".format(creds=OED_CRE
 if __name__ == "__main__":
 
     engine = create_engine(DB_STRING)
-    metadata = MetaData(bind=engine)
+    metadata = MetaData()
 
     tname = "oedtest"
     sname = "sandbox"
@@ -31,49 +30,29 @@ if __name__ == "__main__":
 
     print("Created table")
 
-    conn = engine.connect()
-    try:
-        Session = sessionmaker(bind=engine)
+    with engine.begin() as conn:
         if not engine.dialect.has_table(conn, tname, sname):
-            table.create()  # type: ignore
+            table.create(conn)
 
-            session = Session()
-            try:
-                insert_statement = table.insert().values(  # type: ignore
-                    [
-                        dict(name="Peter", age=25),
-                        dict(name="Inge", age=42),
-                        dict(name="Horst", age=36),
-                    ]
-                )
-                session.execute(insert_statement)
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            finally:
-                session.close()
+            insert_statement = table.insert().values(
+                [
+                    dict(name="Peter", age=25),
+                    dict(name="Inge", age=42),
+                    dict(name="Horst", age=36),
+                ]
+            )
+            conn.execute(insert_statement)
 
         print("Inserted data")
 
-        session = Session()
-        try:
+        stmt = select(table).where(table.c.age > 30)
+        result = conn.execute(stmt).fetchall()
 
-            result = session.query(table).filter(table.c.age > 30)  # type: ignore
-
-            if result:
-                for row in result:
-                    print(row)
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+        for row in result:
+            print(row)
 
         print("Queried dataset")
 
         table.drop()  # type: ignore
 
         print("Drop table")
-    finally:
-        conn.close()
