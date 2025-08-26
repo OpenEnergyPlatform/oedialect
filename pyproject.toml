@@ -7,8 +7,7 @@ authors = [
 urls = {Homepage = "https://github.com/openego/oedialect"}
 description = "SQL-Alchemy dialect for the OpenEnergy Platform"
 readme = "README.md"
-# NOTE: the old tests only work in 3.9
-requires-python = ">=3.9,<3.1"
+requires-python = ">=3.9"
 keywords = ["postgres", "open", "energy", "database", "sql", "rest"]
 
 dependencies = [
@@ -24,7 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   # pytest>=7 not working with old sqlalchemy testing
-  "pytest~8.4",
+  "pytest~=8.4",
   # tox not working yet
   "tox"
 ]
