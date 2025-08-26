@@ -1,3 +1,9 @@
+from psycopg2._psycopg import Error
+
+# from sqlalchemy.engine import Connection
+
+__all__ = ["Error"]  # required for dialect
+
 from oedialect.engine import OEConnection
 
 

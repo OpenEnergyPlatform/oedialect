@@ -1,14 +1,13 @@
 """Test script that can be run directly, e.g. `python -m test.test`"""
 
-# from test.login import DB_CREDS
+import os
 from test.login import OED_CREDS
 
 from sqlalchemy import INTEGER, VARCHAR, Column, MetaData, Table, create_engine, select
 
 import oedialect  # noqa
 
-# DB_STRING = "postgresql://{creds}@localhost:5435/oedb".format(creds=DB_CREDS)
-# NOTE: also set environment variable OEDIALECT_PROTOCOL=http
+os.environ["OEDIALECT_PROTOCOL"] = "http"
 DB_STRING = "postgresql+oedialect://{creds}@localhost:8000".format(creds=OED_CREDS)
 
 

@@ -462,18 +462,18 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         return self.execute_with_cursor(connection, query)
 
     def do_prepare_twophase(self, connection, xid):
-        result = connection.connection.cursor().execute(
+        connection.connection.cursor().execute(
             "advanced/do_prepare_twophase", {"xid": xid}
         )
 
     def do_rollback_twophase(self, connection, xid, is_prepared=True, recover=False):
-        result = connection.connection.post(
+        connection.connection.post(
             "advanced/do_rollback_twophase",
             {"xid": xid, "is_prepared": is_prepared, "recover": recover},
         )
 
     def do_commit_twophase(self, connection, xid, is_prepared=True, recover=False):
-        result = connection.connection.post(
+        connection.connection.post(
             "advanced/do_commit_twophase",
             {"xid": xid, "is_prepared": is_prepared, "recover": recover},
         )
