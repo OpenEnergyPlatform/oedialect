@@ -6,7 +6,7 @@ from test.login import OED_CREDS
 from sqlalchemy import INTEGER, VARCHAR, Column, MetaData, Table, create_engine
 from sqlalchemy.orm import sessionmaker
 
-import oedialect  # noqa
+import oedialect  # noqa: must be imported
 
 # DB_STRING = "postgresql://{creds}@localhost:5435/oedb".format(creds=DB_CREDS)
 # NOTE: also set environment variable OEDIALECT_PROTOCOL=http

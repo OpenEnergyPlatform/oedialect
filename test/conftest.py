@@ -2,4 +2,4 @@ from sqlalchemy.dialects import registry
 
 registry.register("postgresql.oedialect", "oedialect.dialect", "OEDialect")
 
-from sqlalchemy.testing.plugin.pytestplugin import *
+from sqlalchemy.testing.plugin.pytestplugin import *  # noqa: needed for pytest --dburi
