@@ -99,3 +99,4 @@ ontologies/
 scripts/
 test/login.py
 site/
+.vscode/

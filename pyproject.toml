@@ -25,7 +25,8 @@ dev = [
   # pytest>=7 not working with old sqlalchemy testing
   "pytest~=8.4",
   # tox not working yet
-  "tox"
+  "tox",
+  "dotenv"
 ]
 
 
