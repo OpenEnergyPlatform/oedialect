@@ -31,9 +31,15 @@ You can find tutorials and examples
 You need to setup a local instance of the
 [Open Energy Platform](https://github.com/OpenEnergyPlatform/oeplatform)
 
+Run minimal, simple test script:
+
+```bash
+python -m test.test
+```
+
 Finally, run pytest:
 
 ```bash
 # with local oep, you probably need to set OEDIALECT_PROTOCOL=http
-pytest --dburi=postgresql+oedialect://:<LOCAL_OEP_TOKEN>@localhost:8000
+pytest --dburi=postgresql+oedialect://:$LOCAL_OEP_API_TOKEN@localhost:8000
 ```

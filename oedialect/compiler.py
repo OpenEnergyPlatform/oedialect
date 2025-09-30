@@ -2,7 +2,12 @@ import json
 
 from geoalchemy2.elements import WKBElement
 from sqlalchemy import exc
-from sqlalchemy.dialects.postgresql.base import PGDDLCompiler, PGTypeCompiler
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql.base import (
+    PGDDLCompiler,
+    PGExecutionContext,
+    PGTypeCompiler,
+)
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import (
     compiler,
@@ -12,8 +17,23 @@ from sqlalchemy.sql import (
     functions,
     operators,
     selectable,
+    util,
 )
-from sqlalchemy.sql.compiler import FUNCTIONS, OPERATORS, SQLCompiler
+from sqlalchemy.sql.annotation import Annotated
+from sqlalchemy.sql.compiler import (
+    BIND_PARAMS,
+    BIND_PARAMS_ESC,
+    BIND_TEMPLATES,
+    COMPOUND_KEYWORDS,
+    EXTRACT_MAP,
+    FUNCTIONS,
+    ILLEGAL_INITIAL_CHARACTERS,
+    LEGAL_CHARACTERS,
+    OPERATORS,
+    RESERVED_WORDS,
+)
+
+from oedialect import error
 
 DEFAULT_SCHEMA = "sandbox"
 
@@ -254,7 +274,7 @@ class OEDDLCompiler(PGDDLCompiler):
         raise NotImplementedError
 
 
-class OECompiler(SQLCompiler):
+class OECompiler(postgresql.psycopg2.PGCompiler):
     def __str__(self):
         return ""
 
