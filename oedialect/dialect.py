@@ -58,7 +58,7 @@ class OEExecutionContext(PGExecutionContext):
             compiled._textual_ordered_columns,
         )
 
-        self.unicode_statement = util.text_type(compiled)
+        self.unicode_statement = str(compiled)
         if not dialect.supports_unicode_statements:
             self.statement = self.unicode_statement.encode(self.dialect.encoding)
         else:
@@ -160,11 +160,7 @@ class OEExecutionContext(PGExecutionContext):
         #    self.execution_options = dict(self.execution_options)
         #    self.execution_options.update(connection._execution_options)
 
-        if not dialect.supports_unicode_statements:
-            self.unicode_statement = util.text_type(compiled)
-            self.statement = dialect._encoder(self.unicode_statement)[0]
-        else:
-            self.statement = self.unicode_statement = util.text_type(compiled)
+        self.statement = self.unicode_statement = str(compiled)
 
         self.cursor = self.create_cursor()
         self.compiled_parameters = []
@@ -268,7 +264,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         pass
 
     def _check_unicode_description(self, connection):
-        return isinstance("x", sa_util.text_type)
+        return isinstance("x", str)
 
     def _check_unicode_returns(self, connection, additional_tests=None):
         return True
