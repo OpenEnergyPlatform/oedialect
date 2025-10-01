@@ -35,7 +35,7 @@ if __name__ == "__main__":
     try:
         Session = sessionmaker(bind=engine)
         if not engine.dialect.has_table(conn, tname, sname):
-            table.create()  # type: ignore
+            table.create(bind=engine)  # type: ignore
 
             session = Session()
             try:
