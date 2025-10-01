@@ -245,6 +245,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     _supports_drop_index_concurrently = False
     supports_comments = False
     type_compiler = OETypeCompiler
+    supports_unicode_statements = True
 
     def __init__(self, *args, **kwargs):
         self._engine = None
