@@ -3,7 +3,11 @@ import json
 from geoalchemy2.elements import WKBElement
 from sqlalchemy import exc
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql.base import PGDDLCompiler, PGTypeCompiler
+from sqlalchemy.dialects.postgresql.base import (
+    PGCompiler,
+    PGDDLCompiler,
+    PGTypeCompiler,
+)
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import (
     compiler,
@@ -255,7 +259,7 @@ class OEDDLCompiler(PGDDLCompiler):
         raise NotImplementedError
 
 
-class OECompiler(postgresql.psycopg2.PGCompiler):
+class OECompiler(PGCompiler):
     def __str__(self):
         return ""
 
