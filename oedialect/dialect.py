@@ -154,10 +154,11 @@ class OEExecutionContext(PGExecutionContext):
         self.compiled = compiled = compiled_ddl
         self.isddl = True
 
-        self.execution_options = compiled.execution_options
-        if connection._execution_options:
-            self.execution_options = dict(self.execution_options)
-            self.execution_options.update(connection._execution_options)
+        # NOTE: self.execution_options in sqlalcemy2 is immutable
+        # self.execution_options = dict(options.items())
+        # if connection._execution_options:
+        #    self.execution_options = dict(self.execution_options)
+        #    self.execution_options.update(connection._execution_options)
 
         if not dialect.supports_unicode_statements:
             self.unicode_statement = util.text_type(compiled)
