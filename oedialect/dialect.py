@@ -274,14 +274,13 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
     def _get_server_version_info(self, connection):
         return (9, 3)
 
-    def execute_with_cursor(self, connection, query):
-        with connection.connect() as conn:
-            cursor = conn.connection.cursor()
-            try:
-                res = cursor.execute(query)
-            finally:
-                cursor.close()
-            return res
+    def execute_with_cursor(self, conn, query):
+        cursor = conn.connection.cursor()
+        try:
+            res = cursor.execute(query)
+        finally:
+            cursor.close()
+        return res
 
     def _get_default_schema_name(self, connection):
         # TODO: return connection.scalar("select current_schema()")
