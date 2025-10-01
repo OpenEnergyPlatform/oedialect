@@ -145,7 +145,7 @@ class OEExecutionContext(PGExecutionContext):
         return self
 
     @classmethod
-    def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl):
+    def _init_ddl(cls, dialect, connection, dbapi_connection, compiled_ddl, options):
         self = cls.__new__(cls)
         self.root_connection = connection
         self._dbapi_connection = dbapi_connection
