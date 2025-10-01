@@ -16,7 +16,7 @@ DB_STRING = "postgresql+oedialect://{creds}@localhost:8000".format(creds=OED_CRE
 if __name__ == "__main__":
 
     engine = create_engine(DB_STRING)
-    metadata = MetaData(bind=engine)
+    metadata = MetaData()
 
     tname = "oedtest"
     sname = "sandbox"
