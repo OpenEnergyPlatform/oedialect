@@ -15,16 +15,19 @@ from sqlalchemy.sql import (
     selectable,
 )
 from sqlalchemy.sql.compiler import FUNCTIONS, OPERATORS
+import sys
 
 DEFAULT_SCHEMA = "sandbox"
 
+def is_test() -> bool:
+    return "pytest" in sys.modules
 
 class OEDDLCompiler(PGDDLCompiler):
     def __str__(self):
         return ""
 
     def visit_create_table(self, create):
-        jsn = {
+        jsn:dict = {
             "request_type": "put",
             "command": "schema/{schema}/tables/{table}/".format(
                 schema=(
@@ -33,6 +36,10 @@ class OEDDLCompiler(PGDDLCompiler):
                 table=create.element.name,
             ),
         }
+
+        # NOTE: when running unit test, we want to create table in sandbox
+        if is_test():            
+            jsn["query_params"] = {"is_sandbox":True}        
 
         # if only one primary key, specify it along with the column
         first_pk = False
@@ -108,6 +115,7 @@ class OEDDLCompiler(PGDDLCompiler):
         ]
 
     def visit_create_sequence(self, create):
+        # FIXME: remove - no longer supported by oep
 
         jsn = {
             "request_type": "put",
@@ -152,6 +160,7 @@ class OEDDLCompiler(PGDDLCompiler):
         return jsn
 
     def visit_drop_sequence(self, drop):
+        # FIXME: remove - no longer supported by oep
         return {
             "request_type": "delete",
             "command": "schema/{schema}/sequences/{seq}/".format(

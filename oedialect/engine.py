@@ -194,15 +194,19 @@ class OEConnection:
         except Exception as e:
             raise
 
-    def post(self, suffix, query, cursor_id=None, requires_connection_id=False):
+    def post(self, suffix, query:dict, cursor_id=None, requires_connection_id=False):
         sender = requests.post
-        if isinstance(query, dict) and "request_type" in query:
+        
+        if "request_type" in query:
+            
             if query["request_type"] == "put":
-                sender = requests.put
+                sender = requests.put                
             if query["request_type"] == "delete":
                 sender = requests.delete
             if query["request_type"] == "get":
                 sender = requests.get
+        
+        query_params = query.pop("query_params") if "query_params" in query else {}
 
         if "info_cache" in query:
             del query["info_cache"]
@@ -241,6 +245,7 @@ class OEConnection:
             ),
             json=json.loads(json.dumps(data, default=date_handler)),
             headers=header,
+            params=query_params,
             verify=verify,
         )
 
