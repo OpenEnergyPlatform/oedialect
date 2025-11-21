@@ -17,6 +17,8 @@ from sqlalchemy.sql import (
 )
 from sqlalchemy.sql.compiler import FUNCTIONS, OPERATORS
 
+TODO_IGNORE_SCHEMA = "todo_ignore_schema"
+
 
 def is_test() -> bool:
     return "pytest" in sys.modules
@@ -30,7 +32,7 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn: dict = {
             "request_type": "put",
             "command": "schema/{schema}/tables/{table}/".format(
-                schema="TODO_REMOVE",
+                schema=TODO_IGNORE_SCHEMA,
                 table=create.element.name,
             ),
         }
@@ -56,7 +58,7 @@ class OEDDLCompiler(PGDDLCompiler):
             for fk in column.foreign_keys:
                 cd["foreign_key"].append(
                     {
-                        "schema": fk.column.table.schema,
+                        "schema": fk.column.table.schema,  # TODO:remove
                         "table": fk.column.table.name,
                         "column": fk.column.name,
                     }
@@ -118,7 +120,7 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn = {
             "request_type": "put",
             "command": "schema/{schema}/sequences/{seq}/".format(
-                schema="TODO_REMOVE",
+                schema=TODO_IGNORE_SCHEMA,
                 seq=create.element.name,
             ),
             "requires_connection": True,
@@ -160,7 +162,7 @@ class OEDDLCompiler(PGDDLCompiler):
         return {
             "request_type": "delete",
             "command": "schema/{schema}/sequences/{seq}/".format(
-                schema="TODO_REMOVE",
+                schema=TODO_IGNORE_SCHEMA,
                 seq=drop.element.name,
             ),
         }
@@ -198,7 +200,7 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn = {
             "request_type": "delete",
             "command": "schema/{schema}/tables/{table}/".format(
-                schema="TODO_REMOVE",
+                schema=TODO_IGNORE_SCHEMA,
                 table=drop.element.name,
             ),
         }
@@ -727,6 +729,8 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         d = {"command": "advanced/update"}
 
         d["table"] = update_stmt.table.name
+
+        # TODO: remove?
         if update_stmt.table.schema:
             d["schema"] = update_stmt.table.schema.name
 
