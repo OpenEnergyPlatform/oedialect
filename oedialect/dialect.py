@@ -247,7 +247,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     def __init__(self, *args, **kwargs):
         self._engine = None
-        self.default_schema_name = "model_draft"
+        self.default_schema_name = "TODO_REMOVE"
         if kwargs.get("json_serializer") is not None:
             warnings.warn("Use of the keyword 'json_serializer' is not " "supported")
         kwargs["json_serializer"] = lambda x: x
@@ -294,10 +294,6 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
 
     def has_table(self, connection, table_name, schema=None):
         query = {"table": table_name}
-        if schema:
-            query["schema"] = schema
-        else:
-            query["schema"] = oecomp.DEFAULT_SCHEMA
 
         query["command"] = "advanced/has_table"
         return self.execute_with_cursor(connection, query)
@@ -340,7 +336,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         query = dict(
             request_type="get",
             command="schema/{schema}/tables/{table}/meta/".format(
-                schema=schema if schema else "sandbox", table=table_name
+                schema=schema, table=table_name
             ),
         )
         result = self.execute_with_cursor(connection, query)

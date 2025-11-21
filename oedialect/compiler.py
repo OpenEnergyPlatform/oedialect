@@ -1,4 +1,5 @@
 import json
+import sys
 
 from geoalchemy2.elements import WKBElement
 from sqlalchemy import exc
@@ -15,31 +16,28 @@ from sqlalchemy.sql import (
     selectable,
 )
 from sqlalchemy.sql.compiler import FUNCTIONS, OPERATORS
-import sys
 
-DEFAULT_SCHEMA = "sandbox"
 
 def is_test() -> bool:
     return "pytest" in sys.modules
+
 
 class OEDDLCompiler(PGDDLCompiler):
     def __str__(self):
         return ""
 
     def visit_create_table(self, create):
-        jsn:dict = {
+        jsn: dict = {
             "request_type": "put",
             "command": "schema/{schema}/tables/{table}/".format(
-                schema=(
-                    create.element.schema if create.element.schema else DEFAULT_SCHEMA
-                ),
+                schema="TODO_REMOVE",
                 table=create.element.name,
             ),
         }
 
         # NOTE: when running unit test, we want to create table in sandbox
-        if is_test():            
-            jsn["query_params"] = {"is_sandbox":True}        
+        if is_test():
+            jsn["query_params"] = {"is_sandbox": True}
 
         # if only one primary key, specify it along with the column
         first_pk = False
@@ -120,9 +118,7 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn = {
             "request_type": "put",
             "command": "schema/{schema}/sequences/{seq}/".format(
-                schema=(
-                    create.element.schema if create.element.schema else DEFAULT_SCHEMA
-                ),
+                schema="TODO_REMOVE",
                 seq=create.element.name,
             ),
             "requires_connection": True,
@@ -164,7 +160,7 @@ class OEDDLCompiler(PGDDLCompiler):
         return {
             "request_type": "delete",
             "command": "schema/{schema}/sequences/{seq}/".format(
-                schema=drop.element.schema if drop.element.schema else DEFAULT_SCHEMA,
+                schema="TODO_REMOVE",
                 seq=drop.element.name,
             ),
         }
@@ -202,7 +198,7 @@ class OEDDLCompiler(PGDDLCompiler):
         jsn = {
             "request_type": "delete",
             "command": "schema/{schema}/tables/{table}/".format(
-                schema=drop.element.schema if drop.element.schema else DEFAULT_SCHEMA,
+                schema="TODO_REMOVE",
                 table=drop.element.name,
             ),
         }
@@ -426,8 +422,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         jsn["table"] = table_text["table"]
 
-        jsn["schema"] = table_text.get("schema", DEFAULT_SCHEMA)
-
         if crud_params_single or not supports_default_values:
             jsn["fields"] = [preparer.format_column(c[0]) for c in crud_params_single]
         if self.returning or insert_stmt._returning:
@@ -544,8 +538,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         jsn["table"] = table_text["table"]
 
-        jsn["schema"] = table_text.get("schema", DEFAULT_SCHEMA)
-
         if delete_stmt._returning:
             self.returning = delete_stmt._returning
             if self.returning_precedes_values:
@@ -573,11 +565,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         if asfrom or ashint:
             # this is a from_item and a table
             jsn = {"type": "table"}
-            if getattr(table, "schema", None):
-                jsn["schema"] = table.schema
-            else:
-                jsn["schema"] = DEFAULT_SCHEMA
-
             jsn["table"] = table.name
 
             # if fromhints and table in fromhints:
@@ -954,10 +941,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
                 jsn["alias"] = self._truncated_identifier("alias", tablename)
             else:
                 jsn["table"] = tablename
-                if table.schema:
-                    jsn["schema"] = table.schema
-                else:
-                    jsn["schema"] = DEFAULT_SCHEMA
 
             return jsn
 

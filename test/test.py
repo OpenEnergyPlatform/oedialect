@@ -19,7 +19,7 @@ if __name__ == "__main__":
     metadata = MetaData(bind=engine)
 
     tname = "oedtest"
-    sname = "sandbox"
+    sname = "TODO_REMOVE"
 
     table = Table(
         tname,
