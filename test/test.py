@@ -19,14 +19,12 @@ if __name__ == "__main__":
     metadata = MetaData(bind=engine)
 
     tname = "oedtest"
-    sname = "TODO_REMOVE"
 
     table = Table(
         tname,
         metadata,
         Column("name", VARCHAR(50)),
         Column("age", INTEGER),
-        schema=sname,
     )
 
     print("Created table")
@@ -34,7 +32,7 @@ if __name__ == "__main__":
     conn = engine.connect()
     try:
         Session = sessionmaker(bind=engine)
-        if not engine.dialect.has_table(conn, tname, sname):
+        if not engine.dialect.has_table(conn, tname):
             table.create()  # type: ignore
 
             session = Session()
