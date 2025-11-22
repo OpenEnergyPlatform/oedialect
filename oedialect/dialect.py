@@ -9,7 +9,6 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql.base import PGExecutionContext
 from sqlalchemy.engine import reflection
 
-from oedialect import compiler as oecomp
 from oedialect import dbapi
 from oedialect.compiler import OECompiler, OEDDLCompiler, OETypeCompiler
 
@@ -205,11 +204,6 @@ class OEExecutionContext(PGExecutionContext):
                     name = "%s_%s_seq" % (tab, col)
                     column._postgresql_seq_name = seq_name = name
 
-                if column.table is not None:
-                    effective_schema = self.connection.schema_for_object(column.table)
-                else:
-                    effective_schema = None
-
                 seq = {"type": "sequence", "sequence": seq_name}
 
                 exc = {
@@ -262,7 +256,7 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         pass
 
     def _check_unicode_description(self, connection):
-        return isinstance("x", sa_util.text_type)
+        return isinstance("x", util.text_type)
 
     def _check_unicode_returns(self, connection, additional_tests=None):
         return True
@@ -433,18 +427,18 @@ class OEDialect(postgresql.psycopg2.PGDialect_psycopg2):
         return self.execute_with_cursor(connection, query)
 
     def do_prepare_twophase(self, connection, xid):
-        result = connection.connection.cursor().execute(
+        connection.connection.cursor().execute(
             "advanced/do_prepare_twophase", {"xid": xid}
         )
 
     def do_rollback_twophase(self, connection, xid, is_prepared=True, recover=False):
-        result = connection.connection.post(
+        connection.connection.post(
             "advanced/do_rollback_twophase",
             {"xid": xid, "is_prepared": is_prepared, "recover": recover},
         )
 
     def do_commit_twophase(self, connection, xid, is_prepared=True, recover=False):
-        result = connection.connection.post(
+        connection.connection.post(
             "advanced/do_commit_twophase",
             {"xid": xid, "is_prepared": is_prepared, "recover": recover},
         )
