@@ -38,8 +38,6 @@ class OEDDLCompiler(PGDDLCompiler):
         if is_test():
             jsn["query_params"] = {"is_sandbox": True}
 
-        # if only one primary key, specify it along with the column
-        first_pk = False
         cols = []
         for create_column in create.columns:
             column = create_column.element
@@ -391,9 +389,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
 
         jsn = {"command": "advanced/insert"}
 
-        if insert_stmt._prefixes:
-            text += self._generate_prefixes(insert_stmt, insert_stmt._prefixes, **kw)
-
         # table_text = preparer.format_table(insert_stmt.table)
         table_text = insert_stmt.table._compiler_dispatch(
             self, asfrom=True, iscrud=True
@@ -504,9 +499,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         self.isdelete = True
 
         jsn = {"command": "advanced/delete"}
-
-        if delete_stmt._prefixes:
-            text += self._generate_prefixes(delete_stmt, delete_stmt._prefixes, **kw)
 
         table_text = delete_stmt.table._compiler_dispatch(
             self, asfrom=True, iscrud=True
@@ -707,7 +699,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
             return jsn
 
     def visit_update(self, update_stmt, asfrom=False, **kw):
-        toplevel = not self.stack
 
         self.stack.append(
             {
@@ -856,7 +847,6 @@ class OECompiler(postgresql.psycopg2.PGCompiler):
         # or ORDER BY clause of a select.  dialect-specific compilers
         # can modify this behavior.
         render_label_with_as = within_columns_clause and not within_label_clause
-        render_label_only = render_label_as_label is label
 
         d = {"type": "label"}
 
