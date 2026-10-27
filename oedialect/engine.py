@@ -1,3 +1,4 @@
+import copy
 import datetime
 import json
 import os
@@ -275,6 +276,7 @@ def process_returntype(response, content=None):
 class OECursor:
     description = None
     rowcount = -1
+    arraysize = 1
 
     def __init__(self, connection):
         self.__connection = connection
@@ -307,8 +309,10 @@ class OECursor:
             sqlalchemy.sql.elements.quoted_name,
             sqlalchemy.sql.elements._truncated_label,
         ]:
+            if not params:
+                return jsn
             return (jsn % params).strip("'<>").replace("'", '"')
-        elif isinstance(jsn, int):
+        elif isinstance(jsn, (bool, int, float)):
             return jsn
         elif callable(jsn):
             return jsn(params)
@@ -345,22 +349,23 @@ class OECursor:
             response = self.process_result(response)
         return response
 
+    # fetchall() and fetchmany() return lists, not generators: SQLAlchemy may
+    # close the cursor before it consumes the rows, and the rows are streamed
+    # through the cursor
+
     def fetchall(self):
         result = self.__connection.post_expect_stream(
             "advanced/cursor/fetch_all", {}, cursor_id=self.__id
         )
-        if result:
-            for row in result:
-                yield self.process_result(row)
+        return [self.process_result(row) for row in result]
 
-    def fetchmany(self, size):
+    def fetchmany(self, size=None):
+        if size is None:
+            size = self.arraysize
         result = self.__connection.post_expect_stream(
             "advanced/cursor/fetch_many", {"size": size}, cursor_id=self.__id
         )
-
-        if result:
-            for row in result:
-                yield self.process_result(row)
+        return [self.process_result(row) for row in result]
 
     def execute(self, query_obj, params=None):
         if query_obj is None:
@@ -374,18 +379,21 @@ class OECursor:
             query = query_obj.string
         else:
             query = query_obj
-        query = dict(query)
+        # the parameters are substituted in place, and the document belongs to
+        # the compiled statement
+        query = copy.deepcopy(dict(query))
         requires_connection_id = query.get("requires_connection", False)
 
         query["connection_id"] = self.__connection._id
         query["cursor_id"] = self.__id
-        if params:
-            if isinstance(params, tuple) and "values" in query:
-                query["values"] = [
-                    self.__replace_params(query["values"][0], p) for p in params
-                ]
-            else:
-                query = self.__replace_params(query, params)
+        if isinstance(params, (tuple, list)) and "values" in query:
+            query["values"] = [
+                self.__replace_params(query["values"][0], p) for p in params
+            ]
+        else:
+            # also without parameters: the values of an IN clause are callables
+            # that ignore them, see OECompiler.visit_bindparam
+            query = self.__replace_params(query, params or {})
         # query = context.compiled.string
         command = query.pop("command")
         return self.__execute_by_post(
@@ -395,11 +403,11 @@ class OECursor:
     def executemany(self, query, params=None):
         if params is None:
             return self.execute(query)
+        elif query.get("command") == "advanced/insert":
+            # one request inserting all rows
+            return self.execute(query, tuple(params))
         else:
-            if query.isinsert and not (query.isdelete or query.isupdate):
-                return self.execute(query, params)
-            else:
-                return [self.execute(query, p) for p in params]
+            return [self.execute(query, p) for p in params]
 
     def close(self):
         self.__connection.post("advanced/cursor/close", {}, cursor_id=self.__id)

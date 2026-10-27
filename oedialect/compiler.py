@@ -9,15 +9,7 @@ from sqlalchemy.dialects.postgresql.base import (
     PGTypeCompiler,
 )
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql import (
-    compiler,
-    crud,
-    elements,
-    expression,
-    functions,
-    operators,
-    selectable,
-)
+from sqlalchemy.sql import crud, elements, expression, operators
 from sqlalchemy.sql.compiler import FUNCTIONS, OPERATORS
 
 DEFAULT_SCHEMA = "sandbox"
@@ -280,6 +272,25 @@ class OECompiler(PGCompiler):
 
         return clauses
 
+    def visit_expression_clauselist(self, clauselist, **kw):
+        # SQLAlchemy 2.0 compiles the clauses of and_() and or_() here rather
+        # than in visit_clauselist
+        operator_ = clauselist.operator
+        disp = self._get_operator_dispatch(operator_, "expression_clauselist", None)
+        if disp:
+            return disp(clauselist, operator_, **kw)
+
+        kw["_in_operator_expression"] = True
+        return {
+            "type": "operator",
+            "operator": OPERATORS[operator_],
+            "operands": [
+                s
+                for s in (c._compiler_dispatch(self, **kw) for c in clauselist.clauses)
+                if s
+            ],
+        }
+
     def visit_unary(self, unary, **kw):
         if unary.operator:
             if unary.modifier:
@@ -345,31 +356,61 @@ class OECompiler(PGCompiler):
         d["on"] = join.onclause._compiler_dispatch(self, **kwargs)
         return d
 
-    def bindparam_string(self, name, positional_names=None, expanding=False, **kw):
-        if self.positional:
-            if positional_names is not None:
-                positional_names.append(name)
-            else:
-                self.positiontup.append(name)
-        if expanding:
-            raise NotImplementedError
-            self.contains_expanding_parameters = True
-            return "([EXPANDING_%s])" % name
+    def visit_bindparam(self, bindparam, **kw):
+        if bindparam.expanding:
+            # SQLAlchemy renders the values of an IN clause as one "expanding"
+            # parameter, which it substitutes into the SQL string just before
+            # execution. The API takes a document, not a string, so the values
+            # are written into it here. This is why the dialect does not
+            # support the statement cache.
+            return {
+                "type": "grouping",
+                "grouping": [
+                    (lambda params, value=value: value) for value in bindparam.value
+                ],
+            }
+        return super().visit_bindparam(bindparam, **kw)
+
+    def bindparam_string(
+        self,
+        name,
+        accumulate_bind_names=None,
+        visited_bindparam=None,
+        **kw,
+    ):
+        if accumulate_bind_names is not None:
+            accumulate_bind_names.add(name)
+        if visited_bindparam is not None:
+            visited_bindparam.append(name)
+        # the cursor calls this with the parameters of the execution
         return lambda d: d[name]
 
     def render_literal_value(self, value, type_):
         return value
 
-    def visit_insert(self, insert_stmt, **kw):
+    def visit_insert(self, insert_stmt, visiting_cte=None, **kw):
+        compile_state = insert_stmt._compile_state_factory(insert_stmt, self, **kw)
+        insert_stmt = compile_state.statement
+
+        toplevel = not self.stack
+        if toplevel:
+            self.isinsert = True
+            if not self.dml_compile_state:
+                self.dml_compile_state = compile_state
+            if not self.compile_state:
+                self.compile_state = compile_state
+
         self.stack.append(
             {"correlate_froms": set(), "asfrom_froms": set(), "selectable": insert_stmt}
         )
 
-        self.isinsert = True
-        crud_params = crud._get_crud_params(self, insert_stmt, **kw)
+        crud_params = crud._get_crud_params(
+            self, insert_stmt, compile_state, toplevel, **kw
+        )
+        crud_params_single = crud_params.single_params
 
         if (
-            not crud_params
+            not crud_params_single
             and not self.dialect.supports_default_values
             and not self.dialect.supports_empty_insert
         ):
@@ -379,75 +420,62 @@ class OECompiler(PGCompiler):
                 "inserts." % self.dialect.name
             )
 
-        if insert_stmt._has_multi_parameters:
+        if compile_state._has_multi_parameters:
             if not self.dialect.supports_multivalues_insert:
                 raise exc.CompileError(
                     "The '%s' dialect with current database "
                     "version settings does not support "
                     "in-place multirow inserts." % self.dialect.name
                 )
-            crud_params_single = crud_params[0]
-        else:
-            crud_params_single = crud_params
 
-        preparer = self.preparer
         supports_default_values = self.dialect.supports_default_values
 
         jsn = {"command": "advanced/insert"}
 
-        if insert_stmt._prefixes:
-            text += self._generate_prefixes(insert_stmt, insert_stmt._prefixes, **kw)
-
-        # table_text = preparer.format_table(insert_stmt.table)
         table_text = insert_stmt.table._compiler_dispatch(
             self, asfrom=True, iscrud=True
         )
-
-        if insert_stmt._hints:
-            dialect_hints = dict(
-                [
-                    (table, hint_text)
-                    for (table, dialect), hint_text in insert_stmt._hints.items()
-                    if dialect in ("*", self.dialect.name)
-                ]
-            )
-            if insert_stmt.table in dialect_hints:
-                table_text = self.format_from_hint_text(
-                    table_text,
-                    insert_stmt.table,
-                    dialect_hints[insert_stmt.table],
-                    True,
-                )
-
         jsn["table"] = table_text["table"]
-
         jsn["schema"] = table_text.get("schema", DEFAULT_SCHEMA)
 
         if crud_params_single or not supports_default_values:
-            jsn["fields"] = [preparer.format_column(c[0]) for c in crud_params_single]
-        if self.returning or insert_stmt._returning:
-            self.returning = self.returning or insert_stmt._returning
-            returning_clause = self.returning_clause(insert_stmt, self.returning)
+            jsn["fields"] = [
+                self.preparer.format_column(column)
+                for column, _, _, _ in crud_params_single
+            ]
 
-            if self.returning_precedes_values:
-                jsn["returning_insert"] = returning_clause
+        returning_cols = self.implicit_returning or insert_stmt._returning
+        if returning_cols:
+            jsn["returning"] = self.returning_clause(
+                insert_stmt, returning_cols, populate_result_map=toplevel
+            )
 
         if insert_stmt.select is not None:
-            jsn["values"] = self.process(self._insert_from_select, **kw)
+            jsn["values"] = self.process(insert_stmt.select, **kw)
             jsn["method"] = "select"
-        elif not crud_params and supports_default_values:
+        elif not crud_params_single and supports_default_values:
             jsn["values"] = " DEFAULT VALUES"
-        elif insert_stmt._has_multi_parameters:
+        elif compile_state._has_multi_parameters:
             jsn["values"] = [
-                [c[1] for c in crud_param_set] for crud_param_set in crud_params
+                [value for _, _, value, _ in crud_param_set]
+                for crud_param_set in crud_params.all_multi_params
             ]
         else:
-            jsn["values"] = [[c[1] for c in crud_params]]
+            jsn["values"] = [[value for _, _, value, _ in crud_params_single]]
 
-        if self.returning and not self.returning_precedes_values:
-            jsn["returning"] = returning_clause
+        self.stack.pop(-1)
 
         return jsn
+
+    def visit_not_in_op_binary(self, binary, operator, **kw):
+        # the API does not know the operator NOT IN
+        return {
+            "type": "operator",
+            "operator": "not",
+            "operands": [
+                self._generate_generic_binary(binary, OPERATORS[operators.in_op], **kw)
+            ],
+        }
 
     def visit_getitem_binary(self, binary, operator, **kw):
         return {
@@ -499,63 +527,42 @@ class OECompiler(PGCompiler):
         else:
             return alias.original._compiler_dispatch(self, **kwargs)
 
-    def visit_delete(self, delete_stmt, **kw):
+    def visit_delete(self, delete_stmt, visiting_cte=None, **kw):
+        compile_state = delete_stmt._compile_state_factory(delete_stmt, self, **kw)
+        delete_stmt = compile_state.statement
+
+        toplevel = not self.stack
+        if toplevel:
+            self.isdelete = True
+            if not self.dml_compile_state:
+                self.dml_compile_state = compile_state
+            if not self.compile_state:
+                self.compile_state = compile_state
+
         self.stack.append(
             {
-                "correlate_froms": set([delete_stmt.table]),
-                "asfrom_froms": set([delete_stmt.table]),
+                "correlate_froms": {delete_stmt.table},
+                "asfrom_froms": {delete_stmt.table},
                 "selectable": delete_stmt,
             }
         )
-        self.isdelete = True
 
         jsn = {"command": "advanced/delete"}
-
-        if delete_stmt._prefixes:
-            text += self._generate_prefixes(delete_stmt, delete_stmt._prefixes, **kw)
 
         table_text = delete_stmt.table._compiler_dispatch(
             self, asfrom=True, iscrud=True
         )
-
-        if delete_stmt._hints:
-            dialect_hints = dict(
-                [
-                    (table, hint_text)
-                    for (table, dialect), hint_text in delete_stmt._hints.items()
-                    if dialect in ("*", self.dialect.name)
-                ]
-            )
-            if delete_stmt.table in dialect_hints:
-                table_text = self.format_from_hint_text(
-                    table_text,
-                    delete_stmt.table,
-                    dialect_hints[delete_stmt.table],
-                    True,
-                )
-
-        else:
-            dialect_hints = None
-
         jsn["table"] = table_text["table"]
-
         jsn["schema"] = table_text.get("schema", DEFAULT_SCHEMA)
 
-        if delete_stmt._returning:
-            self.returning = delete_stmt._returning
-            if self.returning_precedes_values:
-                jsn["returning_delete"] = " " + self.returning_clause(
-                    delete_stmt, delete_stmt._returning
-                )
-
-        if delete_stmt._whereclause is not None:
-            t = delete_stmt._whereclause._compiler_dispatch(self)
+        if delete_stmt._where_criteria:
+            t = self._and_list(delete_stmt._where_criteria, **kw)
             if t:
                 jsn["where"] = t
 
-        if self.returning and not self.returning_precedes_values:
+        if delete_stmt._returning:
             jsn["returning"] = self.returning_clause(
-                delete_stmt, delete_stmt._returning
+                delete_stmt, delete_stmt._returning, populate_result_map=toplevel
             )
 
         self.stack.pop(-1)
@@ -586,176 +593,141 @@ class OECompiler(PGCompiler):
 
     def visit_select(
         self,
-        select,
+        select_stmt,
         asfrom=False,
-        parens=True,
+        insert_into=False,
         fromhints=None,
-        compound_index=0,
-        nested_join_translation=False,
+        compound_index=None,
         select_wraps_for=None,
+        lateral=False,
+        from_linter=None,
         **kwargs,
     ):
-        jsn = {"command": "advanced/search", "type": "select"}
-        needs_nested_translation = (
-            select.use_labels
-            and not nested_join_translation
-            and not self.stack
-            and not self.dialect.supports_right_nested_joins
-        )
+        # follows SQLCompiler.visit_select(), but builds a document
+        kwargs["within_columns_clause"] = False
 
-        if needs_nested_translation:
-            transformed_select = self._transform_select_for_nested_joins(select)
-            text = self.visit_select(
-                transformed_select,
-                asfrom=asfrom,
-                parens=parens,
-                fromhints=fromhints,
-                compound_index=compound_index,
-                nested_join_translation=True,
-                **kwargs,
-            )
+        compile_state = select_stmt._compile_state_factory(select_stmt, self, **kwargs)
+        kwargs["ambiguous_table_name_map"] = compile_state._ambiguous_table_name_map
+        select_stmt = compile_state.statement
 
         toplevel = not self.stack
+        if toplevel and not self.compile_state:
+            self.compile_state = compile_state
+
         entry = self._default_stack_entry if toplevel else self.stack[-1]
 
-        populate_result_map = (
+        populate_result_map = need_column_expressions = (
             toplevel
-            or (
-                compound_index == 0 and entry.get("need_result_map_for_compound", False)
-            )
+            or entry.get("need_result_map_for_compound", False)
             or entry.get("need_result_map_for_nested", False)
         )
-
-        # this was first proposed as part of #3372; however, it is not
-        # reached in current tests and could possibly be an assertion
-        # instead.
+        if compound_index:
+            populate_result_map = False
         if not populate_result_map and "add_to_result_map" in kwargs:
             del kwargs["add_to_result_map"]
 
-        if needs_nested_translation:
-            if populate_result_map:
-                self._transform_result_map_for_nested_joins(select, transformed_select)
-            return jsn
-
-        froms = self._setup_select_stack(select, entry, asfrom)
+        froms = self._setup_select_stack(
+            select_stmt, compile_state, entry, asfrom, lateral, compound_index
+        )
 
         column_clause_args = kwargs.copy()
         column_clause_args.update(
             {"within_label_clause": False, "within_columns_clause": False}
         )
 
-        if select._hints:
-            hint_text, byfrom = self._setup_select_hints(select)
-            if hint_text:
-                text += hint_text + " "
-        else:
-            byfrom = None
-
-        """
-        if select._prefixes:
-            text += self._generate_prefixes(
-                select, select._prefixes, **kwargs)
-        """
-        if select._distinct:
+        jsn = {"command": "advanced/search", "type": "select"}
+        if select_stmt._distinct:
             jsn["distinct"] = True
+
+        byfrom = None
+        if select_stmt._hints:
+            _, byfrom = self._setup_select_hints(select_stmt)
 
         # the actual list of columns to print in the SELECT column list.
         inner_columns = [
             c
             for c in [
                 self._label_select_column(
-                    select,
+                    select_stmt,
                     column,
                     populate_result_map,
                     asfrom,
                     column_clause_args,
                     name=name,
+                    proxy_name=proxy_name,
+                    fallback_label_name=fallback_label_name,
+                    column_is_repeated=repeated,
+                    need_column_expressions=need_column_expressions,
                 )
-                for name, column in select._columns_plus_names
+                for (
+                    name,
+                    proxy_name,
+                    fallback_label_name,
+                    column,
+                    repeated,
+                ) in compile_state.columns_plus_names
             ]
             if c is not None
         ]
 
-        if populate_result_map and select_wraps_for is not None:
-            # if this select is a compiler-generated wrapper,
-            # rewrite the targeted columns in the result map
-            wrapped_inner_columns = set(select_wraps_for.inner_columns)
-            translate = dict(
-                (outer, inner.pop())
-                for outer, inner in [
-                    (outer, outer.proxy_set.intersection(wrapped_inner_columns))
-                    for outer in select.inner_columns
-                ]
-                if inner
-            )
-            self._result_columns = [
-                (key, name, tuple(translate.get(o, o) for o in obj), type_)
-                for key, name, obj, type_ in self._result_columns
-            ]
-
         jsn = self._compose_select_body(
-            jsn, select, inner_columns, froms, byfrom, kwargs
+            jsn, select_stmt, inner_columns, froms, byfrom, kwargs
         )
 
-        if select._statement_hints:
-            per_dialect = [
-                ht
-                for (dialect_name, ht) in select._statement_hints
-                if dialect_name in ("*", self.dialect.name)
-            ]
-            if per_dialect:
-                text += " " + self.get_statement_hint_text(per_dialect)
-
-        if self.ctes and self._is_toplevel_select(select):
-            text = self._render_cte_clause() + text
-
-        if select._suffixes:
-            text += " " + self._generate_prefixes(select, select._suffixes, **kwargs)
-
         self.stack.pop(-1)
+        return jsn
 
-        if asfrom and parens:
-            return jsn  # "(" + text + ")"
-        else:
-            return jsn
+    def visit_update(self, update_stmt, visiting_cte=None, **kw):
+        compile_state = update_stmt._compile_state_factory(update_stmt, self, **kw)
+        update_stmt = compile_state.statement
 
-    def visit_update(self, update_stmt, asfrom=False, **kw):
         toplevel = not self.stack
+        if toplevel:
+            self.isupdate = True
+            if not self.dml_compile_state:
+                self.dml_compile_state = compile_state
+            if not self.compile_state:
+                self.compile_state = compile_state
+
+        extra_froms = compile_state._extra_froms
 
         self.stack.append(
             {
-                "correlate_froms": set([update_stmt.table]),
-                "asfrom_froms": set([update_stmt.table]),
+                "correlate_froms": {update_stmt.table},
+                "asfrom_froms": {update_stmt.table},
                 "selectable": update_stmt,
             }
         )
-
-        extra_froms = update_stmt._extra_froms
 
         d = {"command": "advanced/update"}
 
         d["table"] = update_stmt.table.name
         if update_stmt.table.schema:
-            d["schema"] = update_stmt.table.schema.name
+            d["schema"] = update_stmt.table.schema
 
-        crud_params = crud._setup_crud_params(self, update_stmt, crud.ISUPDATE, **kw)
+        crud_params = crud._get_crud_params(
+            self, update_stmt, compile_state, toplevel, **kw
+        ).single_params
 
         include_table = extra_froms and self.render_table_with_column_in_update_from
 
         d["fields"] = [
-            c[0]._compiler_dispatch(self, include_table=include_table)
-            for c in crud_params
+            column._compiler_dispatch(self, include_table=include_table)
+            for column, _, _, _ in crud_params
         ]
-        d["values"] = [c[1] for c in crud_params]
+        d["values"] = [value for _, _, value, _ in crud_params]
 
-        if update_stmt._whereclause is not None:
-            t = self.process(update_stmt._whereclause, **kw)
+        if update_stmt._where_criteria:
+            t = self._and_list(update_stmt._where_criteria, **kw)
             if t:
                 d["where"] = t
 
-        limit = self.update_limit_clause(update_stmt)
-        if limit:
-            d["limit"] = limit
+        if update_stmt._returning:
+            d["returning"] = self.returning_clause(
+                update_stmt, update_stmt._returning, populate_result_map=toplevel
+            )
+
+        self.stack.pop(-1)
 
         return d
 
@@ -983,81 +955,6 @@ class OECompiler(PGCompiler):
             "operands": [unary.element._compiler_dispatch(self, **kw)],
         }
 
-    def _label_select_column(
-        self,
-        select,
-        column,
-        populate_result_map,
-        asfrom,
-        column_clause_args,
-        name=None,
-        within_columns_clause=True,
-    ):
-        """produce labeled columns present in a select()."""
-
-        if column.type._has_column_expression and populate_result_map:
-            col_expr = column.type.column_expression(column)
-            add_to_result_map = (
-                lambda keyname, name, objects, type_: self._add_to_result_map(
-                    keyname, name, (column,) + objects, type_
-                )
-            )
-        else:
-            col_expr = column
-            if populate_result_map:
-                add_to_result_map = self._add_to_result_map
-            else:
-                add_to_result_map = None
-
-        if not within_columns_clause:
-            result_expr = col_expr
-        elif isinstance(column, elements.Label):
-            if col_expr is not column:
-                result_expr = compiler._CompileLabel(
-                    col_expr, column.name, alt_names=(column.element,)
-                )
-            else:
-                result_expr = col_expr
-
-        elif select is not None and name:
-            result_expr = compiler._CompileLabel(
-                col_expr, name, alt_names=(column._key_label,)
-            )
-
-        elif (
-            asfrom
-            and isinstance(column, elements.ColumnClause)
-            and not column.is_literal
-            and column.table is not None
-            and not isinstance(column.table, selectable.Select)
-        ):
-            result_expr = compiler._CompileLabel(
-                col_expr, elements._as_truncated(column.name), alt_names=(column.key,)
-            )
-        elif (
-            not isinstance(column, elements.TextClause)
-            and (
-                not isinstance(column, elements.UnaryExpression)
-                or column.wraps_column_expression
-            )
-            and (not hasattr(column, "name") or isinstance(column, functions.Function))
-        ):
-            result_expr = compiler._CompileLabel(col_expr, column.anon_label)
-        elif col_expr is not column:
-            # TODO: are we sure "column" has a .name and .key here ?
-            # assert isinstance(column, elements.ColumnClause)
-            result_expr = compiler._CompileLabel(
-                col_expr, elements._as_truncated(column.name), alt_names=(column.key,)
-            )
-        else:
-            result_expr = col_expr
-
-        column_clause_args.update(
-            within_columns_clause=within_columns_clause,
-            add_to_result_map=add_to_result_map,
-        )
-        return result_expr._compiler_dispatch(self, **column_clause_args)
-
     def _compose_select_body(self, jsn, select, inner_columns, froms, byfrom, kwargs):
 
         jsn["fields"] = inner_columns
@@ -1073,31 +970,48 @@ class OECompiler(PGCompiler):
                     f._compiler_dispatch(self, asfrom=True, **kwargs) for f in froms
                 ]
 
-        if select._whereclause is not None:
-            t = select._whereclause._compiler_dispatch(self, **kwargs)
+        if select._where_criteria:
+            t = self._and_list(select._where_criteria, **kwargs)
             if t:
                 jsn["where"] = t
 
-        if select._group_by_clause.clauses:
-            group_by = select._group_by_clause._compiler_dispatch(self, **kwargs)
+        if select._group_by_clauses:
+            group_by = [
+                c._compiler_dispatch(self, **kwargs) for c in select._group_by_clauses
+            ]
             if group_by:
                 jsn["group_by"] = group_by
 
-        if select._having is not None:
-            t = select._having._compiler_dispatch(self, **kwargs)
+        if select._having_criteria:
+            t = self._and_list(select._having_criteria, **kwargs)
             if t:
                 jsn["having"] = t
 
-        if select._order_by_clause.clauses:
+        if select._order_by_clauses:
             jsn["order_by"] = self.order_by_clause(select, **kwargs)
 
-        if select._limit_clause is not None or select._offset_clause is not None:
+        if select._has_row_limiting_clause:
             jsn.update(self.limit_clause(select, **kwargs))
 
         if select._for_update_arg is not None:
             jsn["for_update"] = self.for_update_clause(select, **kwargs)
 
         return jsn
+
+    def _and_list(self, criteria, **kwargs):
+        """Compile a list of criteria into one document, AND-ing them if needed."""
+        compiled = [
+            c for c in (c._compiler_dispatch(self, **kwargs) for c in criteria) if c
+        ]
+        if not compiled:
+            return None
+        if len(compiled) == 1:
+            return compiled[0]
+        return {
+            "type": "operator",
+            "operator": OPERATORS[operators.and_],
+            "operands": compiled,
+        }
 
     def _generate_prefixes(self, stmt, prefixes, **kw):
         clause = " ".join(
@@ -1109,32 +1023,6 @@ class OECompiler(PGCompiler):
             clause += " "
         return clause
 
-    def _setup_select_stack(self, select, entry, asfrom):
-        correlate_froms = entry["correlate_froms"]
-        asfrom_froms = entry["asfrom_froms"]
-
-        if asfrom:
-            froms = select._get_display_froms(
-                explicit_correlate_froms=correlate_froms.difference(asfrom_froms),
-                implicit_correlate_froms=(),
-            )
-        else:
-            froms = select._get_display_froms(
-                explicit_correlate_froms=correlate_froms,
-                implicit_correlate_froms=asfrom_froms,
-            )
-
-        new_correlate_froms = set(selectable._from_objects(*froms))
-        all_correlate_froms = new_correlate_froms.union(correlate_froms)
-
-        new_entry = {
-            "asfrom_froms": new_correlate_froms,
-            "correlate_froms": all_correlate_froms,
-            "selectable": select,
-        }
-        self.stack.append(new_entry)
-        return froms
-
     def limit_clause(self, select, **kw):
         d = {}
         if select._limit_clause is not None:
@@ -1143,19 +1031,31 @@ class OECompiler(PGCompiler):
             d["offset"] = self.process(select._offset_clause, **kw)
         return d
 
-    def returning_clause(self, stmt, returning_cols):
-        columns = [
-            self._label_select_column(None, c, True, False, {})
-            for c in expression._select_iterables(returning_cols)
+    def returning_clause(self, stmt, returning_cols, *, populate_result_map, **kw):
+        return [
+            self._label_returning_column(
+                stmt,
+                column,
+                populate_result_map,
+                fallback_label_name=fallback_label_name,
+                column_is_repeated=repeated,
+                name=name,
+                proxy_name=proxy_name,
+                **kw,
+            )
+            for (
+                name,
+                proxy_name,
+                fallback_label_name,
+                column,
+                repeated,
+            ) in stmt._generate_columns_plus_names(
+                True, cols=expression._select_iterables(returning_cols)
+            )
         ]
-        return columns
 
     def order_by_clause(self, select, **kw):
-        order_by = select._order_by_clause._compiler_dispatch(self, **kw)
-        if order_by:
-            return order_by
-        else:
-            return {}
+        return [c._compiler_dispatch(self, **kw) for c in select._order_by_clauses]
 
     def for_update_clause(self, select, **kw):
         return {"for_update": True}
@@ -1184,6 +1084,7 @@ class OETypeCompiler(PGTypeCompiler):
             return "FLOAT(%(precision)s)" % {"precision": type_.precision}
 
 
-@compiles(WKBElement)
-def compiles_WKBElement(element, compiler):
-    compiler.visit_wkb_element(element)
+# only for this dialect: other compilers have no visit_wkb_element()
+@compiles(WKBElement, "oedialect")
+def compiles_WKBElement(element, compiler, **kw):
+    return compiler.visit_wkb_element(element)
