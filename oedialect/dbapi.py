@@ -8,7 +8,9 @@ def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
 
 
 # sqlalchemy expects certain attributes: we just re-use from psycopg2
-# paramstyle = psycopg2.paramstyle
+apilevel = psycopg2.apilevel
+threadsafety = psycopg2.threadsafety
+paramstyle = psycopg2.paramstyle
 
 Error = psycopg2.Error
 DatabaseError = psycopg2.DatabaseError

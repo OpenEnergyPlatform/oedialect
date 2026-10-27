@@ -8,7 +8,7 @@ urls = {Homepage = "https://github.com/openego/oedialect"}
 description = "SQL-Alchemy dialect for the OpenEnergy Platform"
 readme = "README.md"
 # NOTE: the old tests only work in 3.9
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.9,<3.14"
 keywords = ["postgres", "open", "energy", "database", "sql", "rest"]
 
 dependencies = [
